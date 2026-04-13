@@ -1,0 +1,38 @@
+# Default experiment configuration.
+# Override by passing --config path/to/override.yaml to run_benchmark.
+
+gpus:
+  ids: [0, 1, 2, 3]
+  # Neighbor adjacency (physical layout). Used by the simulator's thermal
+  # coupling model and by the hybrid scheduler when it considers neighbor
+  # temperatures. NVML cannot discover this -- it must be configured.
+  neighbors:
+    0: [1]
+    1: [0, 2]
+    2: [1, 3]
+    3: [2]
+
+scheduler:
+  name: hybrid              # baseline | hybrid
+  hybrid:
+    w_utilization: 0.5
+    w_thermal: 0.5
+    temp_soft_limit_c: 75
+    temp_hard_limit_c: 85
+    # If >0, the score penalizes GPUs whose neighbors are hot too.
+    neighbor_temp_weight: 0.25
+
+monitor:
+  backend: nvml             # nvml | simulated
+  sample_hz: 10
+  simulated:
+    ambient_c: 25
+    k_load: 0.6             # temp rise per unit util per tick
+    k_cool: 0.05            # passive cooling coefficient
+    k_neighbor: 0.1         # heat coupling between adjacent GPUs
+
+workload_mix:
+  - {type: ptq, count: 20, arrival_rate_hz: 2, mem_required_mb: 2048}
+  - {type: training, count: 2, duration_s: 60, mem_required_mb: 16384}
+
+output_dir: ./runs

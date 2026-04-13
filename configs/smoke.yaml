@@ -1,0 +1,19 @@
+# Tiny config for smoke-testing the scaffold end-to-end.
+gpus:
+  ids: [0, 1]
+  neighbors:
+    0: [1]
+    1: [0]
+
+scheduler:
+  name: baseline
+
+monitor:
+  backend: simulated
+  sample_hz: 20
+
+workload_mix:
+  - {type: ptq, count: 3, arrival_rate_hz: 5, mem_required_mb: 512, num_requests: 3}
+  - {type: training, count: 1, duration_s: 0.5, mem_required_mb: 1024}
+
+output_dir: ./runs

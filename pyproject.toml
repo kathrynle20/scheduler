@@ -1,0 +1,9 @@
+[project]
+name = "scheduler"
+version = "0.1.0"
+description = "Thermal-/compute-aware GPU scheduler for mixed ML workloads (6.S984)"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
