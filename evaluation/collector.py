@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import logging
 import threading
 import time
 from pathlib import Path
@@ -8,6 +9,8 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from monitoring.gpu_monitor import GpuMonitor
+
+log = logging.getLogger(__name__)
 
 
 class MetricsCollector:
@@ -25,6 +28,8 @@ class MetricsCollector:
         if self._thread is not None:
             raise RuntimeError("collector already started")
         self._stop.clear()
+        self._samples_written = 0
+        log.info("collector: starting at %.1f Hz -> %s", self.sample_hz, path)
         self._thread = threading.Thread(
             target=self._loop,
             args=(path, monitor),
@@ -39,6 +44,7 @@ class MetricsCollector:
         self._stop.set()
         self._thread.join(timeout=5.0)
         self._thread = None
+        log.info("collector: stopped (%d samples written)", self._samples_written)
 
     def _loop(self, path: Path, monitor: "GpuMonitor") -> None:
         period = 1.0 / self.sample_hz
@@ -49,5 +55,6 @@ class MetricsCollector:
                 t = time.time()
                 for g in monitor.sample():
                     writer.writerow([t, g.id, g.util_pct, g.temp_c, g.mem_used_mb, g.mem_total_mb])
+                    self._samples_written += 1
                 fh.flush()
                 self._stop.wait(period)

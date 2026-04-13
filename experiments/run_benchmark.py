@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import time
 from pathlib import Path
 
@@ -12,6 +13,17 @@ import workloads
 from evaluation.collector import MetricsCollector
 from framework.job import Job
 from framework.runner import ExperimentRunner
+
+log = logging.getLogger("run_benchmark")
+
+
+def _setup_logging(verbose: bool) -> None:
+    level = logging.DEBUG if verbose else logging.INFO
+    logging.basicConfig(
+        level=level,
+        format="%(asctime)s %(levelname)-5s %(name)s: %(message)s",
+        datefmt="%H:%M:%S",
+    )
 
 
 def load_config(path: Path) -> dict:
@@ -63,11 +75,22 @@ def main(argv: list[str] | None = None) -> int:
                     help="override scheduler.name from the config")
     ap.add_argument("--monitor", choices=["nvml", "simulated"], default=None,
                     help="override monitor.backend from the config")
+    ap.add_argument("-v", "--verbose", action="store_true",
+                    help="enable DEBUG logging (per-scheduler decision rationale)")
     args = ap.parse_args(argv)
 
+    _setup_logging(args.verbose)
     config = load_config(args.config)
     sched_name = args.scheduler or config["scheduler"]["name"]
     monitor_backend = args.monitor or config["monitor"]["backend"]
+
+    log.info(
+        "config=%s scheduler=%s monitor=%s gpus=%s",
+        args.config,
+        sched_name,
+        monitor_backend,
+        config["gpus"]["ids"],
+    )
 
     scheduler = schedulers.build(sched_name, config["scheduler"])
     monitor = monitoring.build(monitor_backend, config)
@@ -80,9 +103,17 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     jobs = build_job_list(config)
+    log.info("built %d jobs: %s", len(jobs), _summarize_jobs(jobs))
     artifacts = runner.run(jobs, workload_factory=workloads.build)
-    print(f"run complete: {artifacts.run_dir}")
+    log.info("artifacts: %s", artifacts.run_dir)
     return 0
+
+
+def _summarize_jobs(jobs: list[Job]) -> str:
+    by_type: dict[str, int] = {}
+    for j in jobs:
+        by_type[j.workload_type] = by_type.get(j.workload_type, 0) + 1
+    return ", ".join(f"{k}={v}" for k, v in sorted(by_type.items()))
 
 
 if __name__ == "__main__":
