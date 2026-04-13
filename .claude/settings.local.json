@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(python3 -c \"import framework, schedulers, workloads, monitoring, evaluation; print\\('imports ok'\\)\")",
-      "Bash(python3 -m pytest tests/ -q)"
-    ]
-  }
-}
