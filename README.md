@@ -18,6 +18,11 @@ python -m evaluation.analyze runs/<run-id>
 
 ## Running on the MIT GPU cluster
 
+See [docs/running_baseline_on_cluster.md](docs/running_baseline_on_cluster.md)
+for the full step-by-step guide (SSH, SLURM allocation, config, verification).
+Condensed version:
+
+
 ```bash
 # Install torch matching the node's CUDA version (example for CUDA 12.1):
 pip install -r requirements.txt

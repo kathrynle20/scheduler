@@ -18,7 +18,8 @@ class GpuMonitor(ABC):
 
 
 class NvmlMonitor(GpuMonitor):
-    """Real-hardware sampler via `pynvml`.
+    """Real-hardware sampler via NVIDIA's official `nvidia-ml-py` package
+    (imported as `pynvml`).
 
     Neighbor topology is not discoverable via NVML -- pass it in via config
     (physical layout / rack adjacency is a human-specified map).
