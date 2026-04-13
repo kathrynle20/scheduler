@@ -3,6 +3,9 @@
 
 gpus:
   ids: [0, 1, 2, 3]
+  # GPU 0 runs the scheduling loop; GPUs 1-3 execute workloads in parallel.
+  scheduler_gpu: 0
+  worker_gpus: [1, 2, 3]
   # Neighbor adjacency (physical layout). Used by the simulator's thermal
   # coupling model and by the hybrid scheduler when it considers neighbor
   # temperatures. NVML cannot discover this -- it must be configured.

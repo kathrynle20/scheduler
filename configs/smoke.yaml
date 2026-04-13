@@ -1,6 +1,9 @@
 # Tiny config for smoke-testing the scaffold end-to-end.
 gpus:
   ids: [0, 1]
+  # GPU 0 schedules; GPU 1 runs workloads.
+  scheduler_gpu: 0
+  worker_gpus: [1]
   neighbors:
     0: [1]
     1: [0]

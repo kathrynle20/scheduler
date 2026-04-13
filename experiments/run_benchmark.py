@@ -92,6 +92,13 @@ def main(argv: list[str] | None = None) -> int:
         config["gpus"]["ids"],
     )
 
+    gpu_cfg = config["gpus"]
+    worker_gpu_ids = gpu_cfg.get("worker_gpus")
+    if worker_gpu_ids is None:
+        # Fallback: GPU 0 schedules, rest are workers.
+        scheduler_gpu = gpu_cfg.get("scheduler_gpu", gpu_cfg["ids"][0])
+        worker_gpu_ids = [g for g in gpu_cfg["ids"] if g != scheduler_gpu]
+
     scheduler = schedulers.build(sched_name, config["scheduler"])
     monitor = monitoring.build(monitor_backend, config)
     collector = MetricsCollector(sample_hz=float(config["monitor"].get("sample_hz", 10)))
@@ -100,6 +107,7 @@ def main(argv: list[str] | None = None) -> int:
         monitor=monitor,
         collector=collector,
         output_root=Path(config.get("output_dir", "runs")),
+        worker_gpu_ids=worker_gpu_ids,
     )
 
     jobs = build_job_list(config)
