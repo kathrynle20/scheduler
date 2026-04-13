@@ -34,8 +34,10 @@ monitor:
     k_cool: 0.05            # passive cooling coefficient
     k_neighbor: 0.1         # heat coupling between adjacent GPUs
 
+arrival_rate_hz: 2              # jobs/sec — all job types randomly interspersed
+
 workload_mix:
-  - {type: ptq, count: 20, arrival_rate_hz: 2, mem_required_mb: 2048}
-  - {type: training, count: 2, duration_s: 60, mem_required_mb: 16384}
+  # - {type: ptq, count: 100, mem_required_mb: 2048}
+  - {type: training, count: 50, num_steps: 500, mem_required_mb: 16384}
 
 output_dir: ./runs

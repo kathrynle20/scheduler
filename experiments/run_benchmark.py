@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import random
 import time
 from pathlib import Path
 
@@ -32,39 +33,58 @@ def load_config(path: Path) -> dict:
 
 
 def build_job_list(config: dict) -> list[Job]:
-    """Expand `workload_mix` into concrete Job instances with arrival times."""
-    jobs: list[Job] = []
+    """Expand `workload_mix` into concrete Job instances with arrival times.
+
+    Jobs of all types are randomly interspersed.  The overall arrival rate is
+    governed by ``arrival_rate_hz`` (default 2 jobs/sec).
+    """
+    arrival_rate_hz = float(config.get("arrival_rate_hz", 2.0))
     t0 = time.monotonic() + 0.5  # small lead-in so the collector has a sample
+
+    # --- build un-timed jobs from each spec ---
+    jobs: list[Job] = []
     for spec in config["workload_mix"]:
         kind = spec["type"]
         count = int(spec["count"])
         mem = int(spec.get("mem_required_mb", 0))
         if kind == "ptq":
-            rate = float(spec.get("arrival_rate_hz", 1.0))
             for i in range(count):
                 jobs.append(
                     Job(
                         id=f"ptq-{i}",
                         workload_type="ptq",
                         mem_required_mb=mem,
-                        arrival_time=t0 + i / rate,
+                        arrival_time=0.0,  # assigned below
                         payload={"num_requests": int(spec.get("num_requests", 50))},
                     )
                 )
         elif kind == "training":
-            duration = float(spec.get("duration_s", 60.0))
+            num_steps = int(spec.get("num_steps", 200))
+            batch_size = int(spec.get("batch_size", 128))
+            hidden = int(spec.get("hidden", 4096))
             for i in range(count):
                 jobs.append(
                     Job(
                         id=f"train-{i}",
                         workload_type="training",
                         mem_required_mb=mem,
-                        arrival_time=t0 + i * 0.1,
-                        payload={"duration_s": duration},
+                        arrival_time=0.0,  # assigned below
+                        payload={
+                            "num_steps": num_steps,
+                            "batch_size": batch_size,
+                            "hidden": hidden,
+                        },
                     )
                 )
         else:
             raise ValueError(f"unknown workload type in config: {kind}")
+
+    # --- shuffle and assign evenly-spaced arrival times ---
+    random.shuffle(jobs)
+    interval = 1.0 / arrival_rate_hz if arrival_rate_hz > 0 else 0.0
+    for idx, job in enumerate(jobs):
+        job.arrival_time = t0 + idx * interval
+
     return jobs
 
 
@@ -114,6 +134,11 @@ def main(argv: list[str] | None = None) -> int:
     log.info("built %d jobs: %s", len(jobs), _summarize_jobs(jobs))
     artifacts = runner.run(jobs, workload_factory=workloads.build)
     log.info("artifacts: %s", artifacts.run_dir)
+
+    from evaluation.analyze import analyze
+    report = analyze(artifacts.run_dir)
+    print(report.format())
+
     return 0
 
 

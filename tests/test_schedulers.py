@@ -15,20 +15,20 @@ def _mk_monitor() -> SimulatedMonitor:
     )
 
 
-def test_baseline_picks_lowest_id_that_fits():
+def test_baseline_round_robin():
     monitor = _mk_monitor()
-    monitor.set_job_load(0, util_pct=0, mem_used_mb=23_500)  # nearly full
+    sched = BaselineScheduler()
+    states = monitor.sample()
     job = Job(id="j0", workload_type="ptq", mem_required_mb=1024, arrival_time=0.0)
-    gpu_id = BaselineScheduler().place(job, monitor.sample())
-    assert gpu_id == 1, "should skip GPU 0 (not enough free memory) and pick GPU 1"
+    ids = [sched.place(job, states) for _ in range(8)]
+    # Should cycle 0,1,2,3,0,1,2,3
+    assert ids == [0, 1, 2, 3, 0, 1, 2, 3]
 
 
-def test_baseline_returns_none_when_nothing_fits():
-    monitor = _mk_monitor()
-    for g in (0, 1, 2, 3):
-        monitor.set_job_load(g, util_pct=0, mem_used_mb=24_000)
+def test_baseline_returns_none_when_no_gpus():
+    sched = BaselineScheduler()
     job = Job(id="j0", workload_type="ptq", mem_required_mb=1024, arrival_time=0.0)
-    assert BaselineScheduler().place(job, monitor.sample()) is None
+    assert sched.place(job, []) is None
 
 
 @pytest.mark.xfail(reason="HybridScheduler is stubbed; workstream 1 to implement", strict=True)
