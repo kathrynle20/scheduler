@@ -11,3 +11,4 @@ runs/
 *.parquet
 !configs/*.yaml
 .DS_Store
+.claude
