@@ -57,7 +57,10 @@ def build_job_list(config: dict) -> list[Job]:
                         workload_type="ptq",
                         mem_required_mb=mem,
                         arrival_time=0.0,  # assigned below
-                        payload={"num_requests": int(spec.get("num_requests", 50))},
+                        payload={
+                            "num_requests": int(spec.get("num_requests", 50)),
+                            "matrix_size": int(spec.get("matrix_size", 2048)),
+                        },
                     )
                 )
         elif kind == "training":
