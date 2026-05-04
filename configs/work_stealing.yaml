@@ -4,8 +4,7 @@
 
 gpus:
   ids: [0, 1, 2, 3]
-  scheduler_gpu: 0
-  worker_gpus: [1, 2, 3]
+  worker_gpus: [0, 1, 2, 3]
   neighbors:
     0: [1]
     1: [0, 2]

@@ -328,6 +328,22 @@ python -m experiments.run_benchmark --config configs/default.yaml --scheduler ba
 
 See `docs/running_baseline_on_cluster.md` for MIT cluster (Satori/Engaging/Supercloud) setup.
 
+### Command Breakdown
+
+```bash
+python -m experiments.run_benchmark \
+  --config configs/smoke.yaml \
+  --scheduler baseline \
+  --monitor nvml
+```
+
+| Part | What it does |
+|------|-------------|
+| `python -m experiments.run_benchmark` | Runs `experiments/run_benchmark.py` as a module. The `-m` flag lets Python find it by package path instead of a file path, so imports inside the file resolve correctly. |
+| `--config configs/smoke.yaml` | Loads the experiment configuration from `configs/smoke.yaml`. This YAML file defines which GPUs to use, how many jobs to run, the arrival rate, workload mix, and output directory. Swap in `configs/default.yaml` for a full-scale run. |
+| `--scheduler baseline` | Overrides the `scheduler.name` field in the config and uses `BaselineScheduler` — the round-robin reference that ignores GPU state. Other options: `hybrid`, `work_stealing`. |
+| `--monitor nvml` | Overrides `monitor.backend` and uses `NvmlMonitor`, which queries real GPU hardware via NVIDIA's `pynvml` library for live utilization, temperature, and memory. Use `--monitor simulated` instead when no GPU is available (e.g., local dev). |
+
 ---
 
 ## Workstream Responsibilities

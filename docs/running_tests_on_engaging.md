@@ -1,7 +1,7 @@
 # Running the Scheduler Tests on MIT Engaging (ORCD)
 
 Step-by-step guide for running the project's pytest suite on the Engaging GPU
-cluster. The docs here were pulled from https://orcd-docs.mit.edu/.
+cluster. The docs here were pulled from [https://orcd-docs.mit.edu/](https://orcd-docs.mit.edu/).
 
 ---
 
@@ -169,7 +169,175 @@ scancel <JOBID>                      # cancel if needed
 
 ---
 
-## 5. Running the Full Benchmark
+## 5. Interactive Attended Workflow (Full Step-by-Step)
+
+Use this when you want to watch output in real time, debug, or confirm things work before submitting unattended batch jobs. Every command below is run in the same terminal session — the prompt changes when SLURM drops you onto a compute node.
+
+### Step 1 — SSH into the login node
+
+```bash
+ssh <kerberos>@orcd-login.mit.edu
+```
+
+Your prompt will look like `[you@orcd-login001 ~]$`. You are **not** on a GPU node yet. Do not run Python or nvidia-smi here.
+
+---
+
+### Step 2 — Reserve a GPU node interactively
+
+```bash
+salloc -p mit_normal_gpu \
+  --gres=gpu:l40s:2 \
+  -N 1 \
+  -c 8 \
+  --mem=32GB \
+  -t 01:00:00
+```
+
+Wait for SLURM to respond. This can take anywhere from a few seconds to a few minutes depending on cluster load:
+
+```
+salloc: Pending job allocation 12345678
+salloc: job 12345678 queued and waiting for resources
+salloc: job 12345678 has been allocated resources
+salloc: Granted job allocation 12345678
+salloc: Nodes node0042 have been allocated to your job
+```
+
+Your prompt will change to something like `[you@node0042 ~]$`. You are now on a compute node with 2 real GPUs.
+
+> **If the wait is long:** Check what's free with `sinfo -p mit_normal_gpu -O Nodes,Gres,StateLong` or try `--gres=gpu:1` (any GPU type) instead of specifying `l40s`.
+
+---
+
+### Step 3 — Verify the GPUs are visible
+
+```bash
+nvidia-smi -L
+```
+
+Expected output:
+```
+GPU 0: NVIDIA L40S (UUID: GPU-...)
+GPU 1: NVIDIA L40S (UUID: GPU-...)
+```
+
+If you see nothing or get an error, SLURM gave you a non-GPU node — cancel with `exit` and re-run Step 2.
+
+---
+
+### Step 4 — Load the environment
+
+```bash
+module purge
+module load miniforge
+source ~/scheduler-env/bin/activate
+export CUDA_DEVICE_ORDER=PCI_BUS_ID
+cd ~/scheduler
+```
+
+Confirm Python can see the GPUs:
+
+```bash
+python -c "import torch; print(torch.cuda.device_count(), 'GPUs')"
+# Expected: 2 GPUs
+```
+
+---
+
+### Step 5 — Run the simulated smoke test first (sanity check)
+
+Always do this before touching real GPUs — it catches import errors and config issues instantly with no GPU needed:
+
+```bash
+python -m experiments.run_benchmark \
+  --config configs/smoke.yaml \
+  --scheduler baseline \
+  --monitor simulated
+```
+
+You should see per-job log lines and a summary report printed to the terminal. If this fails, fix the error before proceeding.
+
+---
+
+### Step 6 — Run the pytest suite
+
+```bash
+pytest -v --tb=short
+```
+
+All tests should pass. The one known `xfail` is `test_hybrid_prefers_cool_idle_gpu` — that is expected until `HybridScheduler` is implemented.
+
+To run only scheduler-related tests:
+
+```bash
+pytest -v tests/test_schedulers.py tests/test_workloads.py
+```
+
+---
+
+### Step 7 — Run the baseline benchmark on real GPUs
+
+```bash
+python -m experiments.run_benchmark \
+  --config configs/smoke.yaml \
+  --scheduler baseline \
+  --monitor nvml \
+  -v
+```
+
+The `-v` flag enables per-job DEBUG output so you can watch scheduling decisions in real time. Output looks like:
+
+```
+10:01:23 INFO  run_benchmark: built 8 jobs: ptq=6, training=2
+10:01:23 INFO  runner: starting: 8 jobs, scheduler=BaselineScheduler, workers=[0, 1]
+10:01:24 INFO  runner: [ptq-0] ptq mem=2048MB -> GPU 0 (util=0% temp=32.1C mem=0/44GB)
+10:01:24 INFO  runner: [ptq-1] ptq mem=2048MB -> GPU 1 (util=12% temp=33.0C mem=0/44GB)
+...
+10:01:45 INFO  runner: run complete: placed=8 deferred=0
+```
+
+---
+
+### Step 8 — Run the work-stealing benchmark
+
+```bash
+python -m experiments.run_benchmark \
+  --config configs/work_stealing_smoke.yaml \
+  --monitor nvml \
+  -v
+```
+
+---
+
+### Step 9 — Analyze and compare results
+
+```bash
+# Find your two most recent runs
+ls -td runs/run-* | head -4
+
+# Analyze each
+python -m evaluation.analyze runs/<baseline-run-id>
+python -m evaluation.analyze runs/<ws-run-id>
+```
+
+The summary report prints latency percentiles, average training duration, and per-GPU temperature stats. Compare p95/p99 latency and utilization balance between the two runs.
+
+---
+
+### Step 10 — Exit the allocation
+
+When you are done, release the GPUs back to the cluster:
+
+```bash
+exit
+```
+
+Your prompt returns to `[you@orcd-login001 ~]$`. SLURM automatically releases the reservation. If you just close the terminal without typing `exit`, the allocation will also eventually expire at the time limit you set (`-t 01:00:00`), but it's good practice to exit explicitly so others can use the GPUs sooner.
+
+---
+
+## 6. Running the Full Benchmark
 
 ### Smoke test (simulated, no GPU — always do this first)
 
@@ -188,16 +356,66 @@ python -m experiments.run_benchmark \
 
 ### Baseline vs. work-stealing on real GPUs
 
-Submit both runs and compare the output CSVs afterward:
+The scheduling loop runs entirely on the CPU — every allocated GPU is a
+**worker**. All configs are set up so `worker_gpus` equals the full `ids` list,
+so no GPU ever sits idle.
+
+**Which config to use depends on how many GPUs SLURM gives you:**
+
+| GPUs allocated | Config to use | Workers | Jobs |
+|---|---|---|---|
+| 2 (default quota) | `smoke.yaml` / `work_stealing_smoke.yaml` | 2 | 8 |
+| 4 (requires quota increase or `mit_preemptable`) | `default.yaml` / `work_stealing.yaml` | 4 | 150 |
+
+**Resource breakdown (2-GPU run):**
+
+| Flag | Value | Why |
+|------|-------|-----|
+| `--gres=gpu:l40s:2` | 2 × L40S (44 GB VRAM each) | All 2 GPUs are workers; CPU handles scheduling |
+| `-N 1` | 1 node | Both GPUs must share a node (single-process runner) |
+| `-c 8` | 8 CPU cores | 4 per GPU; each worker thread + I/O headroom |
+| `--mem=32GB` | 32 GB system RAM | ~16 GB per GPU slot |
+| `-t 01:00:00` | 1 hour | 8 jobs at 5 Hz ≈ 2 s dispatch + ~60 s tail; 1 h is generous |
+
+**Interactive (confirm GPUs work before submitting unattended):**
+
+```bash
+# --- Step 1: on the LOGIN node, request the allocation ---
+salloc -p mit_normal_gpu \
+  --gres=gpu:l40s:2 \
+  -N 1 \
+  -c 8 \
+  --mem=32GB \
+  -t 01:00:00
+# Wait for: "salloc: Nodes node#### have been allocated to your job"
+# Your prompt changes from [you@orcd-login...] to [you@node####...]
+# nvidia-smi does NOT exist on the login node — only run it after this point.
+
+# --- Step 2: now on the COMPUTE node ---
+nvidia-smi -L   # should print GPU 0 and GPU 1
+
+module purge && module load miniforge
+source ~/scheduler-env/bin/activate
+export CUDA_DEVICE_ORDER=PCI_BUS_ID
+cd ~/scheduler
+
+python -m experiments.run_benchmark \
+  --config configs/smoke.yaml \
+  --scheduler baseline \
+  --monitor nvml
+```
+
+**Batch (unattended — submit both and compare):**
 
 ```bash
 cat > run_baseline.sh << 'EOF'
 #!/bin/bash
 #SBATCH -p mit_normal_gpu
-#SBATCH --gres=gpu:l40s:4
-#SBATCH -c 16
-#SBATCH --mem=64GB
-#SBATCH -t 02:00:00
+#SBATCH --gres=gpu:l40s:2
+#SBATCH -N 1
+#SBATCH -c 8
+#SBATCH --mem=32GB
+#SBATCH -t 01:00:00
 #SBATCH -o logs/baseline_%j.out
 #SBATCH --job-name=sched-baseline
 
@@ -208,7 +426,7 @@ source ~/scheduler-env/bin/activate
 export CUDA_DEVICE_ORDER=PCI_BUS_ID
 cd ~/scheduler
 python -m experiments.run_benchmark \
-  --config configs/default.yaml \
+  --config configs/smoke.yaml \
   --scheduler baseline \
   --monitor nvml
 EOF
@@ -216,10 +434,11 @@ EOF
 cat > run_work_stealing.sh << 'EOF'
 #!/bin/bash
 #SBATCH -p mit_normal_gpu
-#SBATCH --gres=gpu:l40s:4
-#SBATCH -c 16
-#SBATCH --mem=64GB
-#SBATCH -t 02:00:00
+#SBATCH --gres=gpu:l40s:2
+#SBATCH -N 1
+#SBATCH -c 8
+#SBATCH --mem=32GB
+#SBATCH -t 01:00:00
 #SBATCH -o logs/ws_%j.out
 #SBATCH --job-name=sched-ws
 
@@ -230,13 +449,34 @@ source ~/scheduler-env/bin/activate
 export CUDA_DEVICE_ORDER=PCI_BUS_ID
 cd ~/scheduler
 python -m experiments.run_benchmark \
-  --config configs/work_stealing.yaml \
+  --config configs/work_stealing_smoke.yaml \
   --monitor nvml
 EOF
 
 mkdir -p logs
 sbatch run_baseline.sh
 sbatch run_work_stealing.sh
+```
+
+**Scaling to 4 GPUs for the full 150-job benchmark:**
+
+The default `mit_normal_gpu` quota is 2 GPUs per job. For the full comparison
+(100 PTQ + 50 training jobs across 4 workers) email
+`orcd-help-engaging@mit.edu` to request a higher limit, or use
+`mit_preemptable` (up to 4 GPUs, 48h, but preemptable — add `--requeue`):
+
+```bash
+#SBATCH -p mit_preemptable          # or mit_normal_gpu after quota increase
+#SBATCH --gres=gpu:l40s:4
+#SBATCH -N 1
+#SBATCH -c 16
+#SBATCH --mem=64GB
+#SBATCH -t 02:00:00
+#SBATCH --requeue                   # auto-restart if preempted
+
+# configs to use with 4 GPUs:
+#   configs/default.yaml        --scheduler baseline
+#   configs/work_stealing.yaml  (scheduler name already set in file)
 ```
 
 Inspect results once done:
@@ -250,11 +490,13 @@ python -m evaluation.analyze runs/<ws-run-id>
 
 ## 6. Partition Quick Reference
 
-| Partition | GPU types | Max GPUs/job | Max time | Best for |
-|-----------|-----------|--------------|----------|----------|
-| `mit_quicktest` | none | — | 15 min | CPU tests, smoke runs |
-| `mit_normal_gpu` | L40S (44 GB), H100 (79 GB), H200 (140 GB) | 2 | 6 hours | Standard GPU benchmarks |
-| `mit_preemptable` | A100, L40S, H200, others | 4 | 48 hours | Long runs (add `--requeue`) |
+
+| Partition         | GPU types                                 | Max GPUs/job | Max time | Best for                    |
+| ----------------- | ----------------------------------------- | ------------ | -------- | --------------------------- |
+| `mit_quicktest`   | none                                      | —            | 15 min   | CPU tests, smoke runs       |
+| `mit_normal_gpu`  | L40S (44 GB), H100 (79 GB), H200 (140 GB) | 2            | 6 hours  | Standard GPU benchmarks     |
+| `mit_preemptable` | A100, L40S, H200, others                  | 4            | 48 hours | Long runs (add `--requeue`) |
+
 
 **Default GPU type** when you write `--gres=gpu:1` is L40S. Prefer requesting
 it explicitly (`--gres=gpu:l40s:1`) for deterministic allocation.
@@ -306,20 +548,24 @@ scp -r <kerberos>@orcd-login.mit.edu:scheduler/runs/run-YYYYMMDD-HHMMSS-xxxxxx \
 
 ## 10. Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| `sbatch: error: Batch job submission failed: Invalid account or account/partition combination` | Wait 15 min after creating the account, then retry |
-| `torch.cuda.is_available()` returns False | Wrong torch wheel (CPU-only). Reinstall: `pip install torch --index-url https://download.pytorch.org/whl/cu121` |
-| `pynvml.NVMLError_LibraryNotFound` | You're on the login node, not a compute node. Run `salloc` first |
-| NVML GPU indices don't match torch | Missing `export CUDA_DEVICE_ORDER=PCI_BUS_ID` |
-| `pip install --user` packages shadowing venv | Run `export PYTHONNOUSERSITE=True` before pytest |
-| Job immediately exits after `salloc` | Time limit probably exceeded — increase `-t` |
-| `module: command not found` in job script | Add `module purge` or ensure `module` is sourced. Source `/etc/profile.d/modules.sh` if needed |
+
+| Symptom                                                                                        | Fix                                                                                                             |
+| ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `sbatch: error: Batch job submission failed: Invalid account or account/partition combination` | Wait 15 min after creating the account, then retry                                                              |
+| `torch.cuda.is_available()` returns False                                                      | Wrong torch wheel (CPU-only). Reinstall: `pip install torch --index-url https://download.pytorch.org/whl/cu121` |
+| `nvidia-smi: command not found`                                                                | You're on the login node — NVIDIA drivers only exist on compute nodes. Run `salloc` first, wait for the prompt to change to `node####`, then retry |
+| `pynvml.NVMLError_LibraryNotFound`                                                             | Same cause as above — you're on the login node. Run `salloc` first                                              |
+| NVML GPU indices don't match torch                                                             | Missing `export CUDA_DEVICE_ORDER=PCI_BUS_ID`                                                                   |
+| `pip install --user` packages shadowing venv                                                   | Run `export PYTHONNOUSERSITE=True` before pytest                                                                |
+| Job immediately exits after `salloc`                                                           | Time limit probably exceeded — increase `-t`                                                                    |
+| `module: command not found` in job script                                                      | Add `module purge` or ensure `module` is sourced. Source `/etc/profile.d/modules.sh` if needed                  |
+
 
 ---
 
 ## 11. Getting Help
 
 - Email: `orcd-help-engaging@mit.edu`
-- Docs: https://orcd-docs.mit.edu/
+- Docs: [https://orcd-docs.mit.edu/](https://orcd-docs.mit.edu/)
 - Office hours listed on the docs site's support page
+

@@ -34,12 +34,12 @@ class RunArtifacts:
 
 
 class ExperimentRunner:
-    """Drive a single experiment: a scheduler GPU dispatches jobs to worker
-    GPUs in parallel, records telemetry and per-job results.
+    """Drive a single experiment: the CPU scheduling loop dispatches jobs to
+    worker GPUs in parallel and records telemetry and per-job results.
 
-    GPU 0 (or whichever ``scheduler_gpu`` is set to) runs the scheduling loop.
-    The remaining ``worker_gpu_ids`` execute workloads concurrently via a
-    thread pool — one thread per worker GPU.
+    All GPUs listed in ``worker_gpu_ids`` execute workloads concurrently via a
+    thread pool — one thread per worker GPU. The scheduling logic itself runs
+    on the CPU main thread and does not occupy any GPU.
     """
 
     def __init__(
