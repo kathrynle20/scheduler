@@ -350,9 +350,16 @@ Sample output for a running experiment:
 > **Expected runtimes per run (approximate, 2× L40S):**
 > | Experiment | Jobs | Approx. wall time |
 > |------------|------|-------------------|
-> | PTQ only | 100 | 5–10 min |
+> | PTQ only | 100 × 100 requests @ 16384² | ~4–5 min |
 > | Training only | 50 × 500 steps | 20–40 min |
 > | Mixed | 150 total | 30–50 min |
+>
+> **PTQ workload sizing note:** Each PTQ job runs 100 matmuls on a 16384×16384
+> float16 tensor (~24ms/matmul on L40S → ~2.4s/job). Jobs arrive at 2/sec but
+> complete at ~0.8/sec per GPU, so queues build up after the first few seconds.
+> You should see GPU utilization >60% and steal count >0 for the work-stealing run.
+> If latency is still <1ms, the stub path is running — check that
+> `torch.cuda.is_available()` returns True on the compute node.
 
 ---
 

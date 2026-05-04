@@ -26,7 +26,7 @@ monitor:
 arrival_rate_hz: 2
 
 workload_mix:
-  - {type: ptq,      count: 100, mem_required_mb: 2048}
+  - {type: ptq,      count: 100, mem_required_mb: 4096, num_requests: 100, matrix_size: 16384}
   - {type: training, count: 50,  num_steps: 500, mem_required_mb: 16384}
 
 output_dir: ./runs
