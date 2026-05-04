@@ -1,0 +1,27 @@
+# Experiment 2: 50 training jobs, 500 steps each.
+# 2-GPU setup for Engaging cluster (mit_normal_gpu default quota).
+gpus:
+  ids: [0, 1]
+  worker_gpus: [0, 1]
+  neighbors:
+    0: [1]
+    1: [0]
+
+scheduler:
+  name: baseline
+
+monitor:
+  backend: nvml
+  sample_hz: 10
+  simulated:
+    ambient_c: 25
+    k_load: 0.6
+    k_cool: 0.05
+    k_neighbor: 0.1
+
+arrival_rate_hz: 2
+
+workload_mix:
+  - {type: training, count: 50, num_steps: 500, mem_required_mb: 16384}
+
+output_dir: ./runs

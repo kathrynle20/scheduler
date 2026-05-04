@@ -276,52 +276,124 @@ pytest -v tests/test_schedulers.py tests/test_workloads.py
 
 ---
 
-### Step 7 — Run the baseline benchmark on real GPUs
+### Step 7 — Run all six experiments (baseline + work stealing × 3 setups)
+
+Run each pair back-to-back so conditions are as similar as possible. Each run produces its own timestamped directory under `runs/`. The `-v` flag shows per-job scheduling decisions as they happen.
+
+---
+
+**Experiment 1 — 100 PTQ inference jobs**
 
 ```bash
+# Baseline
 python -m experiments.run_benchmark \
-  --config configs/smoke.yaml \
-  --scheduler baseline \
+  --config configs/ptq_100.yaml \
+  --monitor nvml \
+  -v
+
+# Work stealing
+python -m experiments.run_benchmark \
+  --config configs/ws_ptq_100.yaml \
   --monitor nvml \
   -v
 ```
 
-The `-v` flag enables per-job DEBUG output so you can watch scheduling decisions in real time. Output looks like:
+---
+
+**Experiment 2 — 50 training jobs (500 steps each)**
+
+```bash
+# Baseline
+python -m experiments.run_benchmark \
+  --config configs/train_50.yaml \
+  --monitor nvml \
+  -v
+
+# Work stealing
+python -m experiments.run_benchmark \
+  --config configs/ws_train_50.yaml \
+  --monitor nvml \
+  -v
+```
+
+---
+
+**Experiment 3 — 100 PTQ + 50 training jobs interleaved**
+
+```bash
+# Baseline
+python -m experiments.run_benchmark \
+  --config configs/mixed_100_50.yaml \
+  --monitor nvml \
+  -v
+
+# Work stealing
+python -m experiments.run_benchmark \
+  --config configs/ws_mixed_100_50.yaml \
+  --monitor nvml \
+  -v
+```
+
+---
+
+Sample output for a running experiment:
 
 ```
-10:01:23 INFO  run_benchmark: built 8 jobs: ptq=6, training=2
-10:01:23 INFO  runner: starting: 8 jobs, scheduler=BaselineScheduler, workers=[0, 1]
+10:01:23 INFO  run_benchmark: built 100 jobs: ptq=100
+10:01:23 INFO  runner: starting: 100 jobs, scheduler=BaselineScheduler, workers=[0, 1]
 10:01:24 INFO  runner: [ptq-0] ptq mem=2048MB -> GPU 0 (util=0% temp=32.1C mem=0/44GB)
-10:01:24 INFO  runner: [ptq-1] ptq mem=2048MB -> GPU 1 (util=12% temp=33.0C mem=0/44GB)
+10:01:24 INFO  runner: [ptq-1] ptq mem=2048MB -> GPU 1 (util=5% temp=33.0C mem=0/44GB)
 ...
-10:01:45 INFO  runner: run complete: placed=8 deferred=0
+10:05:10 INFO  runner: run complete: placed=100 deferred=0
 ```
+
+> **Expected runtimes per run (approximate, 2× L40S):**
+> | Experiment | Jobs | Approx. wall time |
+> |------------|------|-------------------|
+> | PTQ only | 100 | 5–10 min |
+> | Training only | 50 × 500 steps | 20–40 min |
+> | Mixed | 150 total | 30–50 min |
 
 ---
 
-### Step 8 — Run the work-stealing benchmark
+### Step 8 — Analyze and compare results
 
 ```bash
-python -m experiments.run_benchmark \
-  --config configs/work_stealing_smoke.yaml \
-  --monitor nvml \
-  -v
+# List all runs chronologically
+ls -td runs/run-* | head -12
 ```
 
----
-
-### Step 9 — Analyze and compare results
+Analyze and save each run's summary to a text file for side-by-side comparison:
 
 ```bash
-# Find your two most recent runs
-ls -td runs/run-* | head -4
+mkdir -p results
 
-# Analyze each
-python -m evaluation.analyze runs/<baseline-run-id>
-python -m evaluation.analyze runs/<ws-run-id>
+# Experiment 1
+python -m evaluation.analyze runs/<baseline-ptq-run-id>  > results/baseline_ptq.txt
+python -m evaluation.analyze runs/<ws-ptq-run-id>        > results/ws_ptq.txt
+
+# Experiment 2
+python -m evaluation.analyze runs/<baseline-train-run-id> > results/baseline_train.txt
+python -m evaluation.analyze runs/<ws-train-run-id>       > results/ws_train.txt
+
+# Experiment 3
+python -m evaluation.analyze runs/<baseline-mixed-run-id> > results/baseline_mixed.txt
+python -m evaluation.analyze runs/<ws-mixed-run-id>       > results/ws_mixed.txt
 ```
 
-The summary report prints latency percentiles, average training duration, and per-GPU temperature stats. Compare p95/p99 latency and utilization balance between the two runs.
+Compare baseline vs. work stealing side by side:
+
+```bash
+diff results/baseline_ptq.txt results/ws_ptq.txt
+diff results/baseline_train.txt results/ws_train.txt
+diff results/baseline_mixed.txt results/ws_mixed.txt
+```
+
+Key numbers to look for in each report:
+- **PTQ p50/p95/p99 latency** — work stealing should reduce tail latency
+- **Training avg duration** — should be similar or better with work stealing
+- **Per-GPU utilization balance** — work stealing should show lower variance across GPUs
+- **Steal count** — confirms work stealing was actually triggered (work-stealing runs only)
 
 ---
 
