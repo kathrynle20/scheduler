@@ -14,6 +14,8 @@ import workloads
 from evaluation.collector import MetricsCollector
 from framework.job import Job
 from framework.runner import ExperimentRunner
+from framework.ws_runner import WorkStealingRunner
+from schedulers.work_stealing import WorkStealingScheduler
 
 log = logging.getLogger("run_benchmark")
 
@@ -91,7 +93,7 @@ def build_job_list(config: dict) -> list[Job]:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Run a scheduler benchmark.")
     ap.add_argument("--config", type=Path, default=Path("configs/default.yaml"))
-    ap.add_argument("--scheduler", choices=["baseline", "hybrid"], default=None,
+    ap.add_argument("--scheduler", choices=["baseline", "hybrid", "work_stealing"], default=None,
                     help="override scheduler.name from the config")
     ap.add_argument("--monitor", choices=["nvml", "simulated"], default=None,
                     help="override monitor.backend from the config")
@@ -122,13 +124,25 @@ def main(argv: list[str] | None = None) -> int:
     scheduler = schedulers.build(sched_name, config["scheduler"])
     monitor = monitoring.build(monitor_backend, config)
     collector = MetricsCollector(sample_hz=float(config["monitor"].get("sample_hz", 10)))
-    runner = ExperimentRunner(
-        scheduler=scheduler,
-        monitor=monitor,
-        collector=collector,
-        output_root=Path(config.get("output_dir", "runs")),
-        worker_gpu_ids=worker_gpu_ids,
-    )
+
+    if isinstance(scheduler, WorkStealingScheduler):
+        ws_cfg = config["scheduler"].get("work_stealing") or {}
+        runner = WorkStealingRunner(
+            scheduler=scheduler,
+            monitor=monitor,
+            collector=collector,
+            output_root=Path(config.get("output_dir", "runs")),
+            worker_gpu_ids=worker_gpu_ids,
+            steal_threshold=int(ws_cfg.get("steal_threshold", 2)),
+        )
+    else:
+        runner = ExperimentRunner(
+            scheduler=scheduler,
+            monitor=monitor,
+            collector=collector,
+            output_root=Path(config.get("output_dir", "runs")),
+            worker_gpu_ids=worker_gpu_ids,
+        )
 
     jobs = build_job_list(config)
     log.info("built %d jobs: %s", len(jobs), _summarize_jobs(jobs))

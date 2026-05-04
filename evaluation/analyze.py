@@ -6,7 +6,7 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from evaluation.metrics import latency_percentiles, temp_stability
+from evaluation.metrics import latency_percentiles, temp_stability, utilization_balance
 
 
 @dataclass
@@ -20,6 +20,10 @@ class SummaryReport:
     # Per-GPU temperature stats from timeseries
     per_gpu_temp: dict[int, dict[str, float]] = field(default_factory=dict)
     avg_temp_c: float | None = None
+    # Per-GPU utilization balance (work-stealing comparison metric)
+    util_balance: dict | None = None
+    # Number of steals during the run (work-stealing only)
+    steal_count: int | None = None
 
     def format(self) -> str:
         lines = [f"\n{'='*60}", f"  Summary for {self.run_dir}", f"{'='*60}"]
@@ -45,6 +49,25 @@ class SummaryReport:
                 )
         if self.avg_temp_c is not None:
             lines.append(f"  Avg temperature (all GPUs): {self.avg_temp_c:.1f} C")
+
+        # --- Utilization balance ---
+        if self.util_balance:
+            ub = self.util_balance
+            per_gpu = ub.get("per_gpu_mean", {})
+            if per_gpu:
+                parts = ", ".join(
+                    f"gpu{gid}={u:.1f}%" for gid, u in sorted(per_gpu.items())
+                )
+                lines.append(f"  Per-GPU mean util:    {parts}")
+            lines.append(
+                f"  Cluster util:         mean={ub['cluster_mean']:.1f}%, "
+                f"std={ub['cluster_std']:.2f}, "
+                f"max_imbalance={ub['max_imbalance']:.1f}%"
+            )
+
+        # --- Work stealing ---
+        if self.steal_count is not None:
+            lines.append(f"  Steal count:          {self.steal_count}")
 
         lines.append(f"{'='*60}\n")
         return "\n".join(lines)
@@ -93,8 +116,9 @@ def analyze(run_dir: Path) -> SummaryReport:
     if training_durations:
         report.training_avg_duration_s = sum(training_durations) / len(training_durations)
 
-    # ---- timeseries.csv: per-GPU temperature ----
+    # ---- timeseries.csv: per-GPU temperature + utilization ----
     gpu_temps: dict[int, list[float]] = {}
+    gpu_utils: dict[int, list[float]] = {}
 
     if timeseries_path.exists():
         with timeseries_path.open() as fh:
@@ -103,9 +127,11 @@ def analyze(run_dir: Path) -> SummaryReport:
                 try:
                     gpu_id = int(row["gpu_id"])
                     temp = float(row["temp_c"])
+                    util = float(row["util_pct"])
                 except (KeyError, ValueError):
                     continue
                 gpu_temps.setdefault(gpu_id, []).append(temp)
+                gpu_utils.setdefault(gpu_id, []).append(util)
 
     all_temps: list[float] = []
     for gpu_id, temps in sorted(gpu_temps.items()):
@@ -114,6 +140,20 @@ def analyze(run_dir: Path) -> SummaryReport:
 
     if all_temps:
         report.avg_temp_c = sum(all_temps) / len(all_temps)
+
+    if gpu_utils:
+        report.util_balance = utilization_balance(gpu_utils)
+
+    # ---- metadata.json: work-stealing run info, if present ----
+    metadata_path = run_dir / "metadata.json"
+    if metadata_path.exists():
+        try:
+            with metadata_path.open() as fh:
+                meta = json.load(fh)
+            if "steal_count" in meta:
+                report.steal_count = int(meta["steal_count"])
+        except (json.JSONDecodeError, ValueError):
+            pass
 
     return report
 

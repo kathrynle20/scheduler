@@ -34,3 +34,39 @@ def temp_stability(temps_c: Iterable[float]) -> dict[str, float]:
         "max": float(np.max(arr)),
         "p99": float(np.percentile(arr, 99)),
     }
+
+
+def utilization_balance(util_by_gpu: dict[int, list[float]]) -> dict:
+    """Quantify how evenly load is spread across GPUs.
+
+    Args:
+        util_by_gpu: per-GPU utilization time series (0-100).
+
+    Returns:
+        {
+          "per_gpu_mean": {gpu_id: mean_util, ...},
+          "cluster_mean": float,
+          "cluster_std":  float,    # std of per-GPU means -- lower = more balanced
+          "max_imbalance": float,   # max(per_gpu_mean) - min(per_gpu_mean)
+        }
+    """
+    per_gpu_mean: dict[int, float] = {}
+    for gpu_id, series in util_by_gpu.items():
+        arr = np.asarray(list(series), dtype=float)
+        per_gpu_mean[gpu_id] = float(np.mean(arr)) if arr.size else 0.0
+
+    if not per_gpu_mean:
+        return {
+            "per_gpu_mean": {},
+            "cluster_mean": 0.0,
+            "cluster_std": 0.0,
+            "max_imbalance": 0.0,
+        }
+
+    means = np.asarray(list(per_gpu_mean.values()), dtype=float)
+    return {
+        "per_gpu_mean": per_gpu_mean,
+        "cluster_mean": float(np.mean(means)),
+        "cluster_std": float(np.std(means)),
+        "max_imbalance": float(np.max(means) - np.min(means)),
+    }
