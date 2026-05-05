@@ -404,6 +404,71 @@ Key numbers to look for in each report:
 
 ---
 
+### Step 9b — One-shot suite runner (recommended for presentation data)
+
+For multiple trials and a presentation-ready comparison table, use the suite scripts instead of running each config manually.
+
+**Run the full suite (3 trials per config, all 6 configs):**
+
+```bash
+bash scripts/run_suite.sh
+```
+
+**Just the PTQ pair, 5 trials each (fast, fits in 30 min):**
+
+```bash
+bash scripts/run_suite.sh 5 ptq
+```
+
+**Just the work-stealing configs (skip baselines):**
+
+```bash
+bash scripts/run_suite.sh 3 ws
+```
+
+The script writes everything to `results/suite-<timestamp>/`:
+- `manifest.csv` — maps each (config, trial) to its `runs/run-...` directory
+- `suite.log` — combined log output of all runs
+
+**Generate the comparison report:**
+
+```bash
+python -m scripts.aggregate_results results/suite-<timestamp>/manifest.csv
+```
+
+This produces three files in the suite directory:
+- `comparison.md` — markdown table per experiment, baseline vs. work stealing, with mean ± std and Δ % column. **Drop this directly into your presentation.**
+- `summary.csv` — aggregated mean/std per config (for spreadsheets)
+- `raw_metrics.csv` — per-trial metrics (for plotting in a notebook)
+
+The `comparison.md` looks like:
+
+```
+## Experiment 1: PTQ inference (100 jobs)
+
+| Metric | Baseline | Work Stealing | Δ |
+|--------|----------|---------------|---|
+| Avg job latency (ms) | 1676.9 ± 45.2 | 1182.3 ± 38.1 | ↓ 29.5% **better** |
+| p99 job latency (ms) | 3699.2 ± 120.5 | 1980.4 ± 95.1 | ↓ 46.5% **better** |
+| Avg queue wait (ms)  | 762.8 ± 30.4  | 220.1 ± 18.3  | ↓ 71.1% **better** |
+| Avg request time (ms)| 45.70 ± 0.05  | 45.69 ± 0.04  | ≈ same |
+| Steal count          | —             | 22.3 ± 4.1    | — |
+```
+
+**Submit the suite as a SLURM batch job (unattended overnight runs):**
+
+```bash
+# 3 trials of all 6 configs (uses up to 6 hours)
+sbatch scripts/run_suite_sbatch.sh
+
+# 5 trials, PTQ only
+sbatch scripts/run_suite_sbatch.sh 5 ptq
+```
+
+The batch script auto-runs aggregation when finished. Monitor with `squeue --me` and `tail -f logs/suite_<JOBID>.out`.
+
+---
+
 ### Step 10 — Exit the allocation
 
 When you are done, release the GPUs back to the cluster:
