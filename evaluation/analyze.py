@@ -12,9 +12,14 @@ from evaluation.metrics import latency_percentiles, temp_stability, utilization_
 @dataclass
 class SummaryReport:
     run_dir: Path
-    # PTQ latency percentiles (seconds)
-    ptq_latency: dict[float, float] = field(default_factory=dict)
-    ptq_avg_latency_s: float | None = None
+    # PTQ job-level latency: arrival → completion (the scheduling-sensitive metric)
+    ptq_job_latency: dict[float, float] = field(default_factory=dict)
+    ptq_avg_job_latency_s: float | None = None
+    # PTQ queue wait time: arrival → execution start
+    ptq_avg_queue_wait_s: float | None = None
+    # PTQ per-request GPU compute time (scheduler-invariant sanity check)
+    ptq_request_latency: dict[float, float] = field(default_factory=dict)
+    ptq_avg_request_latency_s: float | None = None
     # Training average job duration
     training_avg_duration_s: float | None = None
     # Per-GPU temperature stats from timeseries
@@ -28,12 +33,18 @@ class SummaryReport:
     def format(self) -> str:
         lines = [f"\n{'='*60}", f"  Summary for {self.run_dir}", f"{'='*60}"]
 
-        # --- PTQ ---
-        if self.ptq_avg_latency_s is not None:
-            lines.append(f"  PTQ avg latency:      {self.ptq_avg_latency_s * 1000:.2f} ms")
-        if self.ptq_latency:
-            parts = ", ".join(f"p{int(p)}={v*1000:.2f}ms" for p, v in sorted(self.ptq_latency.items()))
-            lines.append(f"  PTQ latency pctiles:  {parts}")
+        # --- PTQ job-level latency (primary scheduling metric) ---
+        if self.ptq_avg_job_latency_s is not None:
+            lines.append(f"  PTQ avg job latency:  {self.ptq_avg_job_latency_s * 1000:.1f} ms  (arrival → completion)")
+        if self.ptq_job_latency:
+            parts = ", ".join(f"p{int(p)}={v*1000:.1f}ms" for p, v in sorted(self.ptq_job_latency.items()))
+            lines.append(f"  PTQ job pctiles:      {parts}")
+        if self.ptq_avg_queue_wait_s is not None:
+            lines.append(f"  PTQ avg queue wait:   {self.ptq_avg_queue_wait_s * 1000:.1f} ms  (arrival → exec start)")
+
+        # --- PTQ per-request GPU time (should be constant across schedulers) ---
+        if self.ptq_avg_request_latency_s is not None:
+            lines.append(f"  PTQ avg request time: {self.ptq_avg_request_latency_s * 1000:.2f} ms  (GPU compute, scheduler-invariant)")
 
         # --- Training ---
         if self.training_avg_duration_s is not None:
@@ -80,7 +91,9 @@ def analyze(run_dir: Path) -> SummaryReport:
     report = SummaryReport(run_dir=run_dir)
 
     # ---- results.csv: per-job latencies & durations ----
-    ptq_latencies: list[float] = []
+    ptq_job_latencies: list[float] = []    # end_ts - arrival_time  (scheduling-sensitive)
+    ptq_queue_waits: list[float] = []      # start_ts - arrival_time (queue wait only)
+    ptq_request_latencies: list[float] = [] # per-matmul GPU compute time (invariant)
     training_durations: list[float] = []
 
     if results_path.exists():
@@ -97,8 +110,24 @@ def analyze(run_dir: Path) -> SummaryReport:
 
                 wtype = row.get("workload_type", "")
 
-                if wtype == "ptq" and "latencies_s" in extra:
-                    ptq_latencies.extend(extra["latencies_s"])
+                if wtype == "ptq":
+                    # Job-level latency: requires arrival_time column (added in updated runners)
+                    arrival = row.get("arrival_time")
+                    start = row.get("start_ts")
+                    end = row.get("end_ts")
+                    if arrival and end:
+                        try:
+                            ptq_job_latencies.append(float(end) - float(arrival))
+                        except ValueError:
+                            pass
+                    if arrival and start:
+                        try:
+                            ptq_queue_waits.append(float(start) - float(arrival))
+                        except ValueError:
+                            pass
+                    # Per-request GPU compute time (scheduler-invariant)
+                    if "latencies_s" in extra:
+                        ptq_request_latencies.extend(extra["latencies_s"])
 
                 if wtype == "training":
                     start = row.get("start_ts")
@@ -109,9 +138,14 @@ def analyze(run_dir: Path) -> SummaryReport:
                         except ValueError:
                             pass
 
-    if ptq_latencies:
-        report.ptq_avg_latency_s = sum(ptq_latencies) / len(ptq_latencies)
-        report.ptq_latency = latency_percentiles(ptq_latencies)
+    if ptq_job_latencies:
+        report.ptq_avg_job_latency_s = sum(ptq_job_latencies) / len(ptq_job_latencies)
+        report.ptq_job_latency = latency_percentiles(ptq_job_latencies)
+    if ptq_queue_waits:
+        report.ptq_avg_queue_wait_s = sum(ptq_queue_waits) / len(ptq_queue_waits)
+    if ptq_request_latencies:
+        report.ptq_avg_request_latency_s = sum(ptq_request_latencies) / len(ptq_request_latencies)
+        report.ptq_request_latency = latency_percentiles(ptq_request_latencies)
 
     if training_durations:
         report.training_avg_duration_s = sum(training_durations) / len(training_durations)

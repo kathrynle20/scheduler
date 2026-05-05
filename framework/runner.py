@@ -102,7 +102,7 @@ class ExperimentRunner:
             ):
                 writer = csv.writer(fh)
                 writer.writerow(
-                    ["job_id", "workload_type", "gpu_id", "start_ts", "end_ts", "extra"]
+                    ["job_id", "workload_type", "gpu_id", "arrival_time", "start_ts", "end_ts", "extra"]
                 )
 
                 for job in sorted(jobs, key=lambda j: j.arrival_time):
@@ -115,7 +115,7 @@ class ExperimentRunner:
                         deferred += 1
                         log.warning("[%s] DEFERRED (no worker GPU fits)", job.id)
                         with csv_lock:
-                            writer.writerow([job.id, job.workload_type, "", "", "", "deferred"])
+                            writer.writerow([job.id, job.workload_type, "", job.arrival_time, "", "", "deferred"])
                         continue
 
                     placed += 1
@@ -220,6 +220,7 @@ class ExperimentRunner:
                     job.id,
                     job.workload_type,
                     gpu_id,
+                    job.arrival_time,
                     result.start_ts,
                     result.end_ts,
                     result.extra_json(),

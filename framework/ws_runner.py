@@ -96,7 +96,7 @@ class WorkStealingRunner:
             with results_path.open("w", newline="") as fh:
                 writer = csv.writer(fh)
                 writer.writerow(
-                    ["job_id", "workload_type", "gpu_id", "start_ts", "end_ts", "extra"]
+                    ["job_id", "workload_type", "gpu_id", "arrival_time", "start_ts", "end_ts", "extra"]
                 )
 
                 # Persistent worker thread per GPU.
@@ -218,6 +218,7 @@ class WorkStealingRunner:
                             job.id,
                             job.workload_type,
                             gpu_id,
+                            job.arrival_time,
                             result.start_ts,
                             result.end_ts,
                             result.extra_json(),
