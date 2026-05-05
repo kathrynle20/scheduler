@@ -29,7 +29,7 @@ monitor:
     k_cool: 0.05
     k_neighbor: 0.1
 
-arrival_rate_hz: 2.0
+arrival_rate_hz: 1.4
 poisson_arrivals: true
 
 workload_mix:
