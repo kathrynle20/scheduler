@@ -185,6 +185,10 @@ Your prompt will look like `[you@orcd-login001 ~]$`. You are **not** on a GPU no
 
 ### Step 2 — Reserve a GPU node interactively
 
+Pick how many GPUs you want. The number you request here must match the `--num-gpus` flag you pass to the benchmark commands later. The default quota on `mit_normal_gpu` is 2; use `mit_preemptable` for 4 (see Step 9c).
+
+**2 GPUs (default quota, `mit_normal_gpu`):**
+
 ```bash
 salloc -p mit_normal_gpu \
   --gres=gpu:l40s:2 \
@@ -192,6 +196,17 @@ salloc -p mit_normal_gpu \
   -c 8 \
   --mem=32GB \
   -t 01:00:00
+```
+
+**4 GPUs (`mit_preemptable`):**
+
+```bash
+salloc -p mit_preemptable \
+  --gres=gpu:l40s:4 \
+  -N 1 \
+  -c 16 \
+  --mem=64GB \
+  -t 02:00:00
 ```
 
 Wait for SLURM to respond. This can take anywhere from a few seconds to a few minutes depending on cluster load:
@@ -204,7 +219,7 @@ salloc: Granted job allocation 12345678
 salloc: Nodes node0042 have been allocated to your job
 ```
 
-Your prompt will change to something like `[you@node0042 ~]$`. You are now on a compute node with 2 real GPUs.
+Your prompt will change to something like `[you@node0042 ~]$`. You are now on a compute node.
 
 > **If the wait is long:** Check what's free with `sinfo -p mit_normal_gpu -O Nodes,Gres,StateLong` or try `--gres=gpu:1` (any GPU type) instead of specifying `l40s`.
 
@@ -216,10 +231,11 @@ Your prompt will change to something like `[you@node0042 ~]$`. You are now on a 
 nvidia-smi -L
 ```
 
-Expected output:
+Expected output (one line per GPU you requested):
 ```
 GPU 0: NVIDIA L40S (UUID: GPU-...)
 GPU 1: NVIDIA L40S (UUID: GPU-...)
+# GPU 2 and GPU 3 also appear if you requested 4
 ```
 
 If you see nothing or get an error, SLURM gave you a non-GPU node — cancel with `exit` and re-run Step 2.
@@ -240,7 +256,7 @@ Confirm Python can see the GPUs:
 
 ```bash
 python -c "import torch; print(torch.cuda.device_count(), 'GPUs')"
-# Expected: 2 GPUs
+# Expected: 2 GPUs  (or 4 if you reserved 4)
 ```
 
 ---
@@ -280,6 +296,8 @@ pytest -v tests/test_schedulers.py tests/test_workloads.py
 
 Run each pair back-to-back so conditions are as similar as possible. Each run produces its own timestamped directory under `runs/`. The `-v` flag shows per-job scheduling decisions as they happen.
 
+Pass `--num-gpus N` to match however many GPUs you reserved in Step 2. Omit it to use whatever the YAML specifies (default: 2).
+
 ---
 
 **Experiment 1 — 100 PTQ inference jobs**
@@ -289,12 +307,14 @@ Run each pair back-to-back so conditions are as similar as possible. Each run pr
 python -m experiments.run_benchmark \
   --config configs/ptq_100.yaml \
   --monitor nvml \
+  --num-gpus 2 \
   -v
 
 # Work stealing
 python -m experiments.run_benchmark \
   --config configs/ws_ptq_100.yaml \
   --monitor nvml \
+  --num-gpus 2 \
   -v
 ```
 
@@ -307,12 +327,14 @@ python -m experiments.run_benchmark \
 python -m experiments.run_benchmark \
   --config configs/train_50.yaml \
   --monitor nvml \
+  --num-gpus 2 \
   -v
 
 # Work stealing
 python -m experiments.run_benchmark \
   --config configs/ws_train_50.yaml \
   --monitor nvml \
+  --num-gpus 2 \
   -v
 ```
 
@@ -325,14 +347,18 @@ python -m experiments.run_benchmark \
 python -m experiments.run_benchmark \
   --config configs/mixed_100_50.yaml \
   --monitor nvml \
+  --num-gpus 2 \
   -v
 
 # Work stealing
 python -m experiments.run_benchmark \
   --config configs/ws_mixed_100_50.yaml \
   --monitor nvml \
+  --num-gpus 2 \
   -v
 ```
+
+Replace `--num-gpus 2` with `--num-gpus 4` throughout if you reserved 4 GPUs.
 
 ---
 
@@ -411,13 +437,15 @@ For multiple trials and a presentation-ready comparison table, use the suite scr
 **Run the full suite (3 trials per config, all 6 configs):**
 
 ```bash
-bash scripts/run_suite.sh
+bash scripts/run_suite.sh          # uses GPU count from each YAML (default: 2)
+bash scripts/run_suite.sh 3 "" 4   # force 4 GPUs on every config
 ```
 
 **Just the PTQ pair, 5 trials each (fast, fits in 30 min):**
 
 ```bash
-bash scripts/run_suite.sh 5 ptq
+bash scripts/run_suite.sh 5 ptq        # 2 GPUs (from YAML)
+bash scripts/run_suite.sh 5 ptq 4      # 4 GPUs
 ```
 
 **Just the work-stealing configs (skip baselines):**
@@ -458,14 +486,103 @@ The `comparison.md` looks like:
 **Submit the suite as a SLURM batch job (unattended overnight runs):**
 
 ```bash
-# 3 trials of all 6 configs (uses up to 6 hours)
+# 3 trials of all 6 configs, 2 GPUs (from YAML)
 sbatch scripts/run_suite_sbatch.sh
 
-# 5 trials, PTQ only
+# 5 trials, PTQ only, 2 GPUs
 sbatch scripts/run_suite_sbatch.sh 5 ptq
+
+# 3 trials, all configs, force 4 GPUs (requires --gres=gpu:l40s:4 in the sbatch header)
+sbatch scripts/run_suite_sbatch.sh 3 "" 4
 ```
 
 The batch script auto-runs aggregation when finished. Monitor with `squeue --me` and `tail -f logs/suite_<JOBID>.out`.
+
+---
+
+### Step 9c — Scaling to 4 GPUs
+
+The default `mit_normal_gpu` quota is **2 GPUs per job**. To run the benchmarks with 4 worker GPUs (better parallelism, larger queue pressure), use the `mit_preemptable` partition, which allows up to 4 GPUs with up to 48-hour jobs.
+
+**Caveat:** preemptable jobs can be cancelled mid-run if higher-priority work arrives. Add `--requeue` so SLURM restarts the job automatically. The suite runner is idempotent enough to re-run safely (each run writes to a new timestamped directory), though you may end up with extra partial entries in `manifest.csv`.
+
+---
+
+**Interactive (4-GPU node):**
+
+Reserve 4 GPUs via `mit_preemptable` (see Step 2 for the full `salloc` command), then pass `--num-gpus 4` to every benchmark command — no YAML edits needed:
+
+```bash
+# After salloc and loading the environment (Steps 2–4):
+
+# Single experiment, 4 workers
+python -m experiments.run_benchmark \
+  --config configs/ptq_100.yaml \
+  --monitor nvml \
+  --num-gpus 4
+
+# Full suite, 4 workers
+bash scripts/run_suite.sh 3 "" 4
+```
+
+`--num-gpus 4` tells the runner to use GPUs 0–3 as workers, overriding whatever the YAML says. The neighbor graph is auto-generated as fully connected.
+
+---
+
+**Unattended sbatch — 4-GPU suite run:**
+
+```bash
+cat > run_suite_4gpu.sh << 'EOF'
+#!/bin/bash
+#SBATCH -p mit_preemptable
+#SBATCH --gres=gpu:l40s:4
+#SBATCH -N 1
+#SBATCH -c 16
+#SBATCH --mem=64GB
+#SBATCH -t 04:00:00
+#SBATCH --requeue
+#SBATCH -o logs/suite4_%j.out
+#SBATCH -e logs/suite4_%j.err
+#SBATCH --job-name=sched-suite-4gpu
+
+set -euo pipefail
+mkdir -p logs
+
+module purge
+module load miniforge
+source ~/scheduler-env/bin/activate
+export CUDA_DEVICE_ORDER=PCI_BUS_ID
+cd ~/scheduler
+
+nvidia-smi -L
+echo ""
+
+# Pass 4 as the NUM_GPUS argument to run_suite.sh
+bash scripts/run_suite.sh "${1:-3}" "${2:-}" 4
+
+LATEST=$(ls -td results/suite-* 2>/dev/null | head -1)
+[[ -n "$LATEST" ]] && python -m scripts.aggregate_results "$LATEST/manifest.csv"
+EOF
+
+mkdir -p logs
+sbatch run_suite_4gpu.sh
+```
+
+`run_suite.sh` forwards the `4` as `--num-gpus 4` to every `run_benchmark` call internally, so no config files need changing.
+
+```bash
+sbatch run_suite_4gpu.sh 5 ptq   # 5 trials, PTQ pair only, 4 GPUs
+sbatch run_suite_4gpu.sh 3       # 3 trials, all 6 configs, 4 GPUs
+```
+
+Monitor and stream output:
+
+```bash
+squeue --me
+tail -f logs/suite4_<JOBID>.out
+```
+
+> **If `mit_preemptable` queue wait is long:** Check `sinfo -p mit_preemptable -O Nodes,Gres,StateLong` to see free nodes. Alternatively, email `orcd-help-engaging@mit.edu` to request a 4-GPU quota increase on `mit_normal_gpu` — then swap `-p mit_preemptable` back to `-p mit_normal_gpu` and drop the `--requeue` line.
 
 ---
 
@@ -504,12 +621,12 @@ The scheduling loop runs entirely on the CPU — every allocated GPU is a
 **worker**. All configs are set up so `worker_gpus` equals the full `ids` list,
 so no GPU ever sits idle.
 
-**Which config to use depends on how many GPUs SLURM gives you:**
+**The same config files work regardless of GPU count** — pass `--num-gpus N` to match however many GPUs SLURM allocated. The runner auto-generates the worker list and neighbor graph from that number.
 
-| GPUs allocated | Config to use | Workers | Jobs |
-|---|---|---|---|
-| 2 (default quota) | `smoke.yaml` / `work_stealing_smoke.yaml` | 2 | 8 |
-| 4 (requires quota increase or `mit_preemptable`) | `default.yaml` / `work_stealing.yaml` | 4 | 150 |
+| GPUs allocated | `--num-gpus` flag | SLURM partition |
+|---|---|---|
+| 2 (default quota) | `--num-gpus 2` | `mit_normal_gpu` |
+| 4 | `--num-gpus 4` | `mit_preemptable` (or `mit_normal_gpu` after quota increase) |
 
 **Resource breakdown (2-GPU run):**
 
@@ -546,7 +663,8 @@ cd ~/scheduler
 python -m experiments.run_benchmark \
   --config configs/smoke.yaml \
   --scheduler baseline \
-  --monitor nvml
+  --monitor nvml \
+  --num-gpus 2
 ```
 
 **Batch (unattended — submit both and compare):**
@@ -572,7 +690,8 @@ cd ~/scheduler
 python -m experiments.run_benchmark \
   --config configs/smoke.yaml \
   --scheduler baseline \
-  --monitor nvml
+  --monitor nvml \
+  --num-gpus 2
 EOF
 
 cat > run_work_stealing.sh << 'EOF'
@@ -594,7 +713,8 @@ export CUDA_DEVICE_ORDER=PCI_BUS_ID
 cd ~/scheduler
 python -m experiments.run_benchmark \
   --config configs/work_stealing_smoke.yaml \
-  --monitor nvml
+  --monitor nvml \
+  --num-gpus 2
 EOF
 
 mkdir -p logs
@@ -602,25 +722,19 @@ sbatch run_baseline.sh
 sbatch run_work_stealing.sh
 ```
 
-**Scaling to 4 GPUs for the full 150-job benchmark:**
+**Scaling to 4 GPUs:**
 
-The default `mit_normal_gpu` quota is 2 GPUs per job. For the full comparison
-(100 PTQ + 50 training jobs across 4 workers) email
-`orcd-help-engaging@mit.edu` to request a higher limit, or use
-`mit_preemptable` (up to 4 GPUs, 48h, but preemptable — add `--requeue`):
+Request 4 GPUs via `mit_preemptable` (or email `orcd-help-engaging@mit.edu` for a quota increase on `mit_normal_gpu`), then add `--num-gpus 4` — no config changes needed:
 
 ```bash
-#SBATCH -p mit_preemptable          # or mit_normal_gpu after quota increase
-#SBATCH --gres=gpu:l40s:4
-#SBATCH -N 1
-#SBATCH -c 16
-#SBATCH --mem=64GB
-#SBATCH -t 02:00:00
-#SBATCH --requeue                   # auto-restart if preempted
+# Interactive single run
+python -m experiments.run_benchmark \
+  --config configs/ptq_100.yaml \
+  --monitor nvml \
+  --num-gpus 4
 
-# configs to use with 4 GPUs:
-#   configs/default.yaml        --scheduler baseline
-#   configs/work_stealing.yaml  (scheduler name already set in file)
+# Unattended suite (update sbatch header to --gres=gpu:l40s:4 first)
+bash scripts/run_suite.sh 3 "" 4
 ```
 
 Inspect results once done:

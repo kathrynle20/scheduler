@@ -109,6 +109,8 @@ def main(argv: list[str] | None = None) -> int:
                     help="override scheduler.name from the config")
     ap.add_argument("--monitor", choices=["nvml", "simulated"], default=None,
                     help="override monitor.backend from the config")
+    ap.add_argument("--num-gpus", type=int, default=None,
+                    help="override the number of GPUs (0..N-1); auto-generates ids, worker_gpus, neighbors)")
     ap.add_argument("-v", "--verbose", action="store_true",
                     help="enable DEBUG logging (per-scheduler decision rationale)")
     args = ap.parse_args(argv)
@@ -117,6 +119,14 @@ def main(argv: list[str] | None = None) -> int:
     config = load_config(args.config)
     sched_name = args.scheduler or config["scheduler"]["name"]
     monitor_backend = args.monitor or config["monitor"]["backend"]
+
+    if args.num_gpus is not None:
+        ids = list(range(args.num_gpus))
+        config["gpus"] = {
+            "ids": ids,
+            "worker_gpus": ids,
+            "neighbors": {i: [j for j in ids if j != i] for i in ids},
+        }
 
     log.info(
         "config=%s scheduler=%s monitor=%s gpus=%s",

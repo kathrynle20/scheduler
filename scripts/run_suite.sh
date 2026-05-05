@@ -2,11 +2,13 @@
 # Run the full benchmark suite: 3 experiments × 2 schedulers × N trials.
 #
 # Usage:
-#   scripts/run_suite.sh [N_TRIALS] [FILTER]
+#   scripts/run_suite.sh [N_TRIALS] [FILTER] [NUM_GPUS]
 #     N_TRIALS  Number of trials per config (default 3)
 #     FILTER    Substring to match config names; runs only matching ones
 #                 e.g. "ptq" runs ptq_100 + ws_ptq_100 only
 #                 e.g. "ws"  runs all work-stealing configs only
+#     NUM_GPUS  Override number of GPUs (default: use whatever is in each config YAML)
+#                 e.g. 4 to run all configs on 4 GPUs instead of 2
 #
 # Output:
 #   results/suite-<timestamp>/
@@ -20,6 +22,7 @@ set -euo pipefail
 
 N_TRIALS="${1:-3}"
 FILTER="${2:-}"
+NUM_GPUS="${3:-}"
 
 CONFIGS=(
   ptq_100
@@ -53,10 +56,14 @@ echo "config,trial,run_dir" > "$MANIFEST"
 TOTAL=$((${#CONFIGS[@]} * N_TRIALS))
 COUNT=0
 
+GPU_ARGS=()
+[[ -n "$NUM_GPUS" ]] && GPU_ARGS=(--num-gpus "$NUM_GPUS")
+
 echo "==> Running $TOTAL benchmark runs"
 echo "    suite dir: $SUITE_DIR"
 echo "    configs:   ${CONFIGS[*]}"
 echo "    trials:    $N_TRIALS each"
+[[ -n "$NUM_GPUS" ]] && echo "    gpus:      $NUM_GPUS (override)"
 echo ""
 
 START_ALL=$(date +%s)
@@ -78,7 +85,7 @@ for config in "${CONFIGS[@]}"; do
     {
       echo ""
       echo "===== [$COUNT/$TOTAL] $config trial $trial ====="
-      python -m experiments.run_benchmark --config "$config_path" --monitor nvml
+      python -m experiments.run_benchmark --config "$config_path" --monitor nvml "${GPU_ARGS[@]}"
     } >> "$LOG" 2>&1
 
     AFTER=$(ls -1 runs/ 2>/dev/null | sort || true)

@@ -2,9 +2,10 @@
 # SLURM batch version of the full benchmark suite.
 #
 # Submit with:
-#   sbatch scripts/run_suite_sbatch.sh                  # 3 trials, all configs
+#   sbatch scripts/run_suite_sbatch.sh                  # 3 trials, all configs, GPUs from YAML
 #   sbatch scripts/run_suite_sbatch.sh 5                # 5 trials, all configs
 #   sbatch scripts/run_suite_sbatch.sh 3 ptq            # 3 trials, PTQ pair only
+#   sbatch scripts/run_suite_sbatch.sh 3 "" 4           # 3 trials, all configs, force 4 GPUs
 #
 # Time budget (rough, 2× L40S):
 #   PTQ pair (2 configs × 3 trials):    ~8-12 min
@@ -37,12 +38,13 @@ cd ~/scheduler
 
 N_TRIALS="${1:-3}"
 FILTER="${2:-}"
+NUM_GPUS="${3:-}"
 
 echo "==> Job $SLURM_JOB_ID on $(hostname)"
 nvidia-smi -L
 echo ""
 
-bash scripts/run_suite.sh "$N_TRIALS" "$FILTER"
+bash scripts/run_suite.sh "$N_TRIALS" "$FILTER" "$NUM_GPUS"
 
 # Auto-aggregate the most recent suite directory
 LATEST_SUITE=$(ls -td results/suite-* 2>/dev/null | head -1)
