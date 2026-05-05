@@ -84,11 +84,20 @@ def build_job_list(config: dict) -> list[Job]:
         else:
             raise ValueError(f"unknown workload type in config: {kind}")
 
-    # --- shuffle and assign evenly-spaced arrival times ---
+    # --- shuffle and assign arrival times ---
+    # poisson_arrivals: true  → exponentially distributed inter-arrival gaps
+    #                           (realistic bursty traffic; required for work stealing
+    #                           to see queue imbalance)
+    # poisson_arrivals: false → evenly spaced (deterministic, good for smoke tests)
     random.shuffle(jobs)
-    interval = 1.0 / arrival_rate_hz if arrival_rate_hz > 0 else 0.0
+    use_poisson = bool(config.get("poisson_arrivals", False))
+    t = t0
     for idx, job in enumerate(jobs):
-        job.arrival_time = t0 + idx * interval
+        if use_poisson:
+            t += random.expovariate(arrival_rate_hz)
+        else:
+            t = t0 + idx * (1.0 / arrival_rate_hz if arrival_rate_hz > 0 else 0.0)
+        job.arrival_time = t
 
     return jobs
 

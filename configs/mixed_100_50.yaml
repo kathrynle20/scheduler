@@ -1,9 +1,5 @@
 # Experiment 3 (baseline): 100 PTQ + 50 training jobs (500 steps each), interleaved.
 # 2-GPU setup for Engaging cluster (mit_normal_gpu default quota).
-#
-# PTQ jobs target ~1.2s each; training jobs are longer (~minutes).
-# Mixed arrival at 1.0/sec keeps the cluster in the 60-70% range when
-# PTQ dominates early, with training filling sustained load thereafter.
 gpus:
   ids: [0, 1]
   worker_gpus: [0, 1]
@@ -24,9 +20,10 @@ monitor:
     k_neighbor: 0.1
 
 arrival_rate_hz: 1.0
+poisson_arrivals: true
 
 workload_mix:
-  - {type: ptq,      count: 100, mem_required_mb: 4096, num_requests: 50, matrix_size: 16384}
+  - {type: ptq,      count: 100, mem_required_mb: 4096, num_requests: 25, matrix_size: 16384}
   - {type: training, count: 50,  num_steps: 500, mem_required_mb: 16384}
 
 output_dir: ./runs

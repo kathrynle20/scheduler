@@ -1,14 +1,15 @@
 # Experiment 1 (baseline): 100 PTQ inference jobs only.
 # 2-GPU setup for Engaging cluster (mit_normal_gpu default quota).
 #
-# Sizing rationale (targeting ~65% GPU utilization):
-#   matrix_size=16384  → ~24ms per matmul on L40S (realistic quantized inference)
-#   num_requests=50    → ~1.2s per job
-#   arrival_rate_hz=1  → 1 job/sec across 2 GPUs
-#   utilization ≈ (1.0/2) × 1.2 = 0.60  →  60-65% per GPU
+# Sizing rationale (targeting ~60% GPU utilization):
+#   matrix_size=16384   → measured ~47ms/matmul on L40S
+#   num_requests=25     → ~1.175s/job  (25 × 47ms)
+#   arrival_rate_hz=1.0 → 1 job/sec across 2 GPUs
+#   mean util ≈ (1.0/2) × 1.175 = 0.59  →  ~60% per GPU
 #
-# This keeps GPUs in the energy-proportional region (50-70%) recommended by
-# the professor, where latency is still stable (not hockey-sticking yet).
+# poisson_arrivals: true uses exponentially distributed inter-arrival gaps
+# (Poisson process) instead of even spacing. This is realistic for inference
+# traffic and creates the burst imbalance that work stealing acts on.
 gpus:
   ids: [0, 1]
   worker_gpus: [0, 1]
@@ -29,8 +30,9 @@ monitor:
     k_neighbor: 0.1
 
 arrival_rate_hz: 1.0
+poisson_arrivals: true
 
 workload_mix:
-  - {type: ptq, count: 100, mem_required_mb: 4096, num_requests: 50, matrix_size: 16384}
+  - {type: ptq, count: 100, mem_required_mb: 4096, num_requests: 25, matrix_size: 16384}
 
 output_dir: ./runs

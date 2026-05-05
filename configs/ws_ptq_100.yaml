@@ -2,8 +2,8 @@
 # 2-GPU setup for Engaging cluster (mit_normal_gpu default quota).
 #
 # Identical workload to ptq_100.yaml -- only the scheduler differs.
-# At ~60% utilization, brief queue imbalances occur and work stealing
-# should fire when one GPU's queue is 2+ jobs longer than the other.
+# Poisson arrivals create burst periods where one GPU queues 2+ jobs
+# while the other is free, triggering work stealing.
 gpus:
   ids: [0, 1]
   worker_gpus: [0, 1]
@@ -28,8 +28,9 @@ monitor:
     k_neighbor: 0.1
 
 arrival_rate_hz: 1.0
+poisson_arrivals: true
 
 workload_mix:
-  - {type: ptq, count: 100, mem_required_mb: 4096, num_requests: 50, matrix_size: 16384}
+  - {type: ptq, count: 100, mem_required_mb: 4096, num_requests: 25, matrix_size: 16384}
 
 output_dir: ./runs
