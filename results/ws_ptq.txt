@@ -1,0 +1,15 @@
+
+============================================================
+  Summary for runs/run-20260504-203850-0c029b
+============================================================
+  PTQ avg latency:      44.88 ms
+  PTQ latency pctiles:  p50=44.41ms, p95=48.29ms, p99=48.93ms
+  Per-GPU temperatures:
+    GPU 0: mean=48.4C, max=61.0C, std=6.8C
+    GPU 1: mean=50.5C, max=62.0C, std=6.8C
+  Avg temperature (all GPUs): 49.5 C
+  Per-GPU mean util:    gpu0=51.4%, gpu1=57.4%
+  Cluster util:         mean=54.4%, std=3.00, max_imbalance=6.0%
+  Steal count:          22
+============================================================
+

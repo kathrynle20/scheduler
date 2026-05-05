@@ -1,0 +1,21 @@
+18:28:51 INFO  run_benchmark: config=configs/work_stealing_smoke.yaml scheduler=work_stealing monitor=nvml gpus=[0, 1, 2]
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/orcd/home/002/jianmc/scheduler/experiments/run_benchmark.py", line 167, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/orcd/home/002/jianmc/scheduler/experiments/run_benchmark.py", line 125, in main
+    monitor = monitoring.build(monitor_backend, config)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/orcd/home/002/jianmc/scheduler/monitoring/__init__.py", line 11, in build
+    return NvmlMonitor(gpu_ids=gpu_ids, neighbors=neighbors)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/orcd/home/002/jianmc/scheduler/monitoring/gpu_monitor.py", line 40, in __init__
+    self._handles = {g: pynvml.nvmlDeviceGetHandleByIndex(g) for g in self.gpu_ids}
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jianmc/scheduler-env/lib/python3.12/site-packages/pynvml.py", line 3144, in nvmlDeviceGetHandleByIndex
+    _nvmlCheckReturn(ret)
+  File "/home/jianmc/scheduler-env/lib/python3.12/site-packages/pynvml.py", line 1083, in _nvmlCheckReturn
+    raise NVMLError(ret)
+pynvml.NVMLError_InvalidArgument: Invalid Argument

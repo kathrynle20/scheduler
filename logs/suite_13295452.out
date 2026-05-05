@@ -1,0 +1,436 @@
+==> Job 13295452 on node1634
+GPU 0: NVIDIA L40S (UUID: GPU-a601c9f5-4885-0d2b-d58a-b04ebe378746)
+GPU 1: NVIDIA L40S (UUID: GPU-fcf3d0f0-4dee-396a-a1f2-722e7e521db7)
+
+==> Running 180 benchmark runs
+    suite dir: results/suite-20260505-000326
+    configs:   ptq_100 ws_ptq_100 train_50 ws_train_50 mixed_100_50 ws_mixed_100_50
+    trials:    30 each
+
+[1/180] ptq_100 trial 1/30
+    -> runs/run-20260505-000326-8c3c3b  (65s)
+[2/180] ptq_100 trial 2/30
+    -> runs/run-20260505-000432-b8c1d5  (78s)
+[3/180] ptq_100 trial 3/30
+    -> runs/run-20260505-000549-ec8b95  (67s)
+[4/180] ptq_100 trial 4/30
+    -> runs/run-20260505-000656-3a7efa  (78s)
+[5/180] ptq_100 trial 5/30
+    -> runs/run-20260505-000815-28fcdc  (68s)
+[6/180] ptq_100 trial 6/30
+    -> runs/run-20260505-000922-bcfcd7  (73s)
+[7/180] ptq_100 trial 7/30
+    -> runs/run-20260505-001036-35bae5  (71s)
+[8/180] ptq_100 trial 8/30
+    -> runs/run-20260505-001147-a70b87  (73s)
+[9/180] ptq_100 trial 9/30
+    -> runs/run-20260505-001300-dd063b  (75s)
+[10/180] ptq_100 trial 10/30
+    -> runs/run-20260505-001414-526a0c  (66s)
+[11/180] ptq_100 trial 11/30
+    -> runs/run-20260505-001520-2c965e  (80s)
+[12/180] ptq_100 trial 12/30
+    -> runs/run-20260505-001640-08863d  (79s)
+[13/180] ptq_100 trial 13/30
+    -> runs/run-20260505-001759-75e3c6  (75s)
+[14/180] ptq_100 trial 14/30
+    -> runs/run-20260505-001915-1c13b3  (81s)
+[15/180] ptq_100 trial 15/30
+    -> runs/run-20260505-002035-2ea365  (72s)
+[16/180] ptq_100 trial 16/30
+    -> runs/run-20260505-002147-44fd0a  (81s)
+[17/180] ptq_100 trial 17/30
+    -> runs/run-20260505-002309-14738b  (74s)
+[18/180] ptq_100 trial 18/30
+    -> runs/run-20260505-002423-d5e95f  (76s)
+[19/180] ptq_100 trial 19/30
+    -> runs/run-20260505-002538-ecfcbe  (80s)
+[20/180] ptq_100 trial 20/30
+    -> runs/run-20260505-002659-cb7c77  (82s)
+[21/180] ptq_100 trial 21/30
+    -> runs/run-20260505-002820-54d1fa  (77s)
+[22/180] ptq_100 trial 22/30
+    -> runs/run-20260505-002937-9bc0d9  (73s)
+[23/180] ptq_100 trial 23/30
+    -> runs/run-20260505-003050-aefdce  (89s)
+[24/180] ptq_100 trial 24/30
+    -> runs/run-20260505-003219-eae87b  (82s)
+[25/180] ptq_100 trial 25/30
+    -> runs/run-20260505-003341-a664a6  (81s)
+[26/180] ptq_100 trial 26/30
+    -> runs/run-20260505-003502-f27c62  (66s)
+[27/180] ptq_100 trial 27/30
+    -> runs/run-20260505-003609-31beed  (86s)
+[28/180] ptq_100 trial 28/30
+    -> runs/run-20260505-003734-1efc73  (72s)
+[29/180] ptq_100 trial 29/30
+    -> runs/run-20260505-003846-3c0106  (68s)
+[30/180] ptq_100 trial 30/30
+    -> runs/run-20260505-003955-be839f  (68s)
+[31/180] ws_ptq_100 trial 1/30
+    -> runs/run-20260505-004102-c101a7  (74s)
+[32/180] ws_ptq_100 trial 2/30
+    -> runs/run-20260505-004216-8388b3  (73s)
+[33/180] ws_ptq_100 trial 3/30
+    -> runs/run-20260505-004330-dafd49  (75s)
+[34/180] ws_ptq_100 trial 4/30
+    -> runs/run-20260505-004444-2d754b  (80s)
+[35/180] ws_ptq_100 trial 5/30
+    -> runs/run-20260505-004604-0b4d1c  (80s)
+[36/180] ws_ptq_100 trial 6/30
+    -> runs/run-20260505-004725-90a35a  (79s)
+[37/180] ws_ptq_100 trial 7/30
+    -> runs/run-20260505-004843-24c76b  (84s)
+[38/180] ws_ptq_100 trial 8/30
+    -> runs/run-20260505-005010-743167  (69s)
+[39/180] ws_ptq_100 trial 9/30
+    -> runs/run-20260505-005117-262f83  (77s)
+[40/180] ws_ptq_100 trial 10/30
+    -> runs/run-20260505-005234-7cb4f6  (94s)
+[41/180] ws_ptq_100 trial 11/30
+    -> runs/run-20260505-005408-c0b14e  (66s)
+[42/180] ws_ptq_100 trial 12/30
+    -> runs/run-20260505-005515-a9fe5a  (69s)
+[43/180] ws_ptq_100 trial 13/30
+    -> runs/run-20260505-005624-96903a  (76s)
+[44/180] ws_ptq_100 trial 14/30
+    -> runs/run-20260505-005740-609b8f  (88s)
+[45/180] ws_ptq_100 trial 15/30
+    -> runs/run-20260505-005907-1ffdc1  (67s)
+[46/180] ws_ptq_100 trial 16/30
+    -> runs/run-20260505-010014-29c5b5  (67s)
+[47/180] ws_ptq_100 trial 17/30
+    -> runs/run-20260505-010122-febc78  (78s)
+[48/180] ws_ptq_100 trial 18/30
+    -> runs/run-20260505-010239-7d54ac  (77s)
+[49/180] ws_ptq_100 trial 19/30
+    -> runs/run-20260505-010356-360cf9  (70s)
+[50/180] ws_ptq_100 trial 20/30
+    -> runs/run-20260505-010506-81a97d  (80s)
+[51/180] ws_ptq_100 trial 21/30
+    -> runs/run-20260505-010627-a5bc38  (85s)
+[52/180] ws_ptq_100 trial 22/30
+    -> runs/run-20260505-010751-5203eb  (78s)
+[53/180] ws_ptq_100 trial 23/30
+    -> runs/run-20260505-010909-a63b9c  (70s)
+[54/180] ws_ptq_100 trial 24/30
+    -> runs/run-20260505-011019-d67535  (75s)
+[55/180] ws_ptq_100 trial 25/30
+    -> runs/run-20260505-011134-183c13  (72s)
+[56/180] ws_ptq_100 trial 26/30
+    -> runs/run-20260505-011246-4c9d32  (69s)
+[57/180] ws_ptq_100 trial 27/30
+    -> runs/run-20260505-011355-bea171  (67s)
+[58/180] ws_ptq_100 trial 28/30
+    -> runs/run-20260505-011503-e9df0c  (79s)
+[59/180] ws_ptq_100 trial 29/30
+    -> runs/run-20260505-011621-ce3fb9  (75s)
+[60/180] ws_ptq_100 trial 30/30
+    -> runs/run-20260505-011736-03f830  (69s)
+[61/180] train_50 trial 1/30
+    -> runs/run-20260505-011846-f3ead2  (39s)
+[62/180] train_50 trial 2/30
+    -> runs/run-20260505-011924-a91446  (39s)
+[63/180] train_50 trial 3/30
+    -> runs/run-20260505-012003-1ef575  (39s)
+[64/180] train_50 trial 4/30
+    -> runs/run-20260505-012042-f0d9f6  (38s)
+[65/180] train_50 trial 5/30
+    -> runs/run-20260505-012121-5758af  (39s)
+[66/180] train_50 trial 6/30
+    -> runs/run-20260505-012200-3dffae  (39s)
+[67/180] train_50 trial 7/30
+    -> runs/run-20260505-012238-419e9e  (39s)
+[68/180] train_50 trial 8/30
+    -> runs/run-20260505-012317-d67a6b  (38s)
+[69/180] train_50 trial 9/30
+    -> runs/run-20260505-012356-e5525f  (39s)
+[70/180] train_50 trial 10/30
+    -> runs/run-20260505-012434-476b6d  (38s)
+[71/180] train_50 trial 11/30
+    -> runs/run-20260505-012513-f3b102  (40s)
+[72/180] train_50 trial 12/30
+    -> runs/run-20260505-012553-91af65  (39s)
+[73/180] train_50 trial 13/30
+    -> runs/run-20260505-012631-53df3f  (38s)
+[74/180] train_50 trial 14/30
+    -> runs/run-20260505-012710-00a96c  (39s)
+[75/180] train_50 trial 15/30
+    -> runs/run-20260505-012748-361d2a  (39s)
+[76/180] train_50 trial 16/30
+    -> runs/run-20260505-012827-0288df  (38s)
+[77/180] train_50 trial 17/30
+    -> runs/run-20260505-012905-17a0ba  (40s)
+[78/180] train_50 trial 18/30
+    -> runs/run-20260505-012945-fb79fe  (38s)
+[79/180] train_50 trial 19/30
+    -> runs/run-20260505-013023-4ec804  (39s)
+[80/180] train_50 trial 20/30
+    -> runs/run-20260505-013102-199a19  (38s)
+[81/180] train_50 trial 21/30
+    -> runs/run-20260505-013141-0838c4  (39s)
+[82/180] train_50 trial 22/30
+    -> runs/run-20260505-013219-e1f686  (39s)
+[83/180] train_50 trial 23/30
+    -> runs/run-20260505-013258-abb714  (39s)
+[84/180] train_50 trial 24/30
+    -> runs/run-20260505-013337-8909c7  (39s)
+[85/180] train_50 trial 25/30
+    -> runs/run-20260505-013416-84c7b4  (38s)
+[86/180] train_50 trial 26/30
+    -> runs/run-20260505-013454-e2b659  (38s)
+[87/180] train_50 trial 27/30
+    -> runs/run-20260505-013533-962af2  (40s)
+[88/180] train_50 trial 28/30
+    -> runs/run-20260505-013612-a9469b  (38s)
+[89/180] train_50 trial 29/30
+    -> runs/run-20260505-013651-7e53bb  (39s)
+[90/180] train_50 trial 30/30
+    -> runs/run-20260505-013729-2d7bc9  (39s)
+[91/180] ws_train_50 trial 1/30
+    -> runs/run-20260505-013808-15616d  (38s)
+[92/180] ws_train_50 trial 2/30
+    -> runs/run-20260505-013846-e22b8e  (39s)
+[93/180] ws_train_50 trial 3/30
+    -> runs/run-20260505-013925-cadcf0  (39s)
+[94/180] ws_train_50 trial 4/30
+    -> runs/run-20260505-014004-eb69e6  (38s)
+[95/180] ws_train_50 trial 5/30
+    -> runs/run-20260505-014042-278c60  (39s)
+[96/180] ws_train_50 trial 6/30
+    -> runs/run-20260505-014121-98c64d  (38s)
+[97/180] ws_train_50 trial 7/30
+    -> runs/run-20260505-014200-e4f8f1  (39s)
+[98/180] ws_train_50 trial 8/30
+    -> runs/run-20260505-014238-37c3db  (38s)
+[99/180] ws_train_50 trial 9/30
+    -> runs/run-20260505-014317-7408e1  (39s)
+[100/180] ws_train_50 trial 10/30
+    -> runs/run-20260505-014356-624d66  (39s)
+[101/180] ws_train_50 trial 11/30
+    -> runs/run-20260505-014434-26e9e1  (39s)
+[102/180] ws_train_50 trial 12/30
+    -> runs/run-20260505-014513-29ae0f  (39s)
+[103/180] ws_train_50 trial 13/30
+    -> runs/run-20260505-014552-92f3ad  (39s)
+[104/180] ws_train_50 trial 14/30
+    -> runs/run-20260505-014631-2e4622  (38s)
+[105/180] ws_train_50 trial 15/30
+    -> runs/run-20260505-014709-a9e4a9  (39s)
+[106/180] ws_train_50 trial 16/30
+    -> runs/run-20260505-014748-d6c944  (38s)
+[107/180] ws_train_50 trial 17/30
+    -> runs/run-20260505-014826-687cea  (39s)
+[108/180] ws_train_50 trial 18/30
+    -> runs/run-20260505-014905-48f98b  (38s)
+[109/180] ws_train_50 trial 19/30
+    -> runs/run-20260505-014944-2a1364  (39s)
+[110/180] ws_train_50 trial 20/30
+    -> runs/run-20260505-015022-42806f  (39s)
+[111/180] ws_train_50 trial 21/30
+    -> runs/run-20260505-015101-8b07a3  (39s)
+[112/180] ws_train_50 trial 22/30
+    -> runs/run-20260505-015141-b8dbd4  (39s)
+[113/180] ws_train_50 trial 23/30
+    -> runs/run-20260505-015219-d36074  (38s)
+[114/180] ws_train_50 trial 24/30
+    -> runs/run-20260505-015258-9f710b  (39s)
+[115/180] ws_train_50 trial 25/30
+    -> runs/run-20260505-015336-8f191c  (39s)
+[116/180] ws_train_50 trial 26/30
+    -> runs/run-20260505-015415-eaa6ea  (39s)
+[117/180] ws_train_50 trial 27/30
+    -> runs/run-20260505-015454-0cb50a  (39s)
+[118/180] ws_train_50 trial 28/30
+    -> runs/run-20260505-015533-344031  (38s)
+[119/180] ws_train_50 trial 29/30
+    -> runs/run-20260505-015612-273b20  (40s)
+[120/180] ws_train_50 trial 30/30
+    -> runs/run-20260505-015651-4edf2a  (39s)
+[121/180] mixed_100_50 trial 1/30
+    -> runs/run-20260505-015730-49e29b  (127s)
+[122/180] mixed_100_50 trial 2/30
+    -> runs/run-20260505-015937-0e44cb  (122s)
+[123/180] mixed_100_50 trial 3/30
+    -> runs/run-20260505-020139-5e3366  (110s)
+[124/180] mixed_100_50 trial 4/30
+    -> runs/run-20260505-020329-792413  (125s)
+[125/180] mixed_100_50 trial 5/30
+    -> runs/run-20260505-020534-1ce305  (123s)
+[126/180] mixed_100_50 trial 6/30
+    -> runs/run-20260505-020737-aa0873  (124s)
+[127/180] mixed_100_50 trial 7/30
+    -> runs/run-20260505-020941-f1cad3  (112s)
+[128/180] mixed_100_50 trial 8/30
+    -> runs/run-20260505-021134-06331f  (103s)
+[129/180] mixed_100_50 trial 9/30
+    -> runs/run-20260505-021317-4ebd74  (120s)
+[130/180] mixed_100_50 trial 10/30
+    -> runs/run-20260505-021517-3bb975  (125s)
+[131/180] mixed_100_50 trial 11/30
+    -> runs/run-20260505-021722-accc97  (107s)
+[132/180] mixed_100_50 trial 12/30
+    -> runs/run-20260505-021910-50757a  (118s)
+[133/180] mixed_100_50 trial 13/30
+    -> runs/run-20260505-022107-b22eff  (106s)
+[134/180] mixed_100_50 trial 14/30
+    -> runs/run-20260505-022254-5630ad  (112s)
+[135/180] mixed_100_50 trial 15/30
+    -> runs/run-20260505-022445-fb820a  (112s)
+[136/180] mixed_100_50 trial 16/30
+    -> runs/run-20260505-022637-03b6fb  (111s)
+[137/180] mixed_100_50 trial 17/30
+    -> runs/run-20260505-022828-6d23f2  (123s)
+[138/180] mixed_100_50 trial 18/30
+    -> runs/run-20260505-023031-e759dd  (128s)
+[139/180] mixed_100_50 trial 19/30
+    -> runs/run-20260505-023239-3ac5ae  (104s)
+[140/180] mixed_100_50 trial 20/30
+    -> runs/run-20260505-023423-c64185  (115s)
+[141/180] mixed_100_50 trial 21/30
+    -> runs/run-20260505-023618-921e75  (113s)
+[142/180] mixed_100_50 trial 22/30
+    -> runs/run-20260505-023811-1ad38c  (133s)
+[143/180] mixed_100_50 trial 23/30
+    -> runs/run-20260505-024024-c6f05a  (107s)
+[144/180] mixed_100_50 trial 24/30
+    -> runs/run-20260505-024212-7611ff  (110s)
+[145/180] mixed_100_50 trial 25/30
+    -> runs/run-20260505-024401-191845  (118s)
+[146/180] mixed_100_50 trial 26/30
+    -> runs/run-20260505-024559-c27576  (103s)
+[147/180] mixed_100_50 trial 27/30
+    -> runs/run-20260505-024742-d2b7ba  (107s)
+[148/180] mixed_100_50 trial 28/30
+    -> runs/run-20260505-024930-4ecf3b  (126s)
+[149/180] mixed_100_50 trial 29/30
+    -> runs/run-20260505-025136-320583  (100s)
+[150/180] mixed_100_50 trial 30/30
+    -> runs/run-20260505-025315-054102  (119s)
+[151/180] ws_mixed_100_50 trial 1/30
+    -> runs/run-20260505-025514-b1ae86  (113s)
+[152/180] ws_mixed_100_50 trial 2/30
+    -> runs/run-20260505-025708-4e5bb9  (106s)
+[153/180] ws_mixed_100_50 trial 3/30
+    -> runs/run-20260505-025854-d0a2b9  (102s)
+[154/180] ws_mixed_100_50 trial 4/30
+    -> runs/run-20260505-030035-2769a0  (119s)
+[155/180] ws_mixed_100_50 trial 5/30
+    -> runs/run-20260505-030235-12affd  (102s)
+[156/180] ws_mixed_100_50 trial 6/30
+    -> runs/run-20260505-030416-15d46e  (115s)
+[157/180] ws_mixed_100_50 trial 7/30
+    -> runs/run-20260505-030611-6da93c  (103s)
+[158/180] ws_mixed_100_50 trial 8/30
+    -> runs/run-20260505-030754-d867e5  (121s)
+[159/180] ws_mixed_100_50 trial 9/30
+    -> runs/run-20260505-030955-1182b4  (110s)
+[160/180] ws_mixed_100_50 trial 10/30
+    -> runs/run-20260505-031145-5aed24  (107s)
+[161/180] ws_mixed_100_50 trial 11/30
+    -> runs/run-20260505-031332-ecc98a  (131s)
+[162/180] ws_mixed_100_50 trial 12/30
+    -> runs/run-20260505-031543-a86148  (104s)
+[163/180] ws_mixed_100_50 trial 13/30
+    -> runs/run-20260505-031727-b9db8f  (113s)
+[164/180] ws_mixed_100_50 trial 14/30
+    -> runs/run-20260505-031920-6bda56  (113s)
+[165/180] ws_mixed_100_50 trial 15/30
+    -> runs/run-20260505-032113-d5246e  (136s)
+[166/180] ws_mixed_100_50 trial 16/30
+    -> runs/run-20260505-032329-5b845e  (113s)
+[167/180] ws_mixed_100_50 trial 17/30
+    -> runs/run-20260505-032523-603a68  (110s)
+[168/180] ws_mixed_100_50 trial 18/30
+    -> runs/run-20260505-032713-3f15c0  (104s)
+[169/180] ws_mixed_100_50 trial 19/30
+    -> runs/run-20260505-032856-8d824e  (107s)
+[170/180] ws_mixed_100_50 trial 20/30
+    -> runs/run-20260505-033043-e60be4  (110s)
+[171/180] ws_mixed_100_50 trial 21/30
+    -> runs/run-20260505-033234-44a53b  (108s)
+[172/180] ws_mixed_100_50 trial 22/30
+    -> runs/run-20260505-033421-781578  (116s)
+[173/180] ws_mixed_100_50 trial 23/30
+    -> runs/run-20260505-033618-b74781  (108s)
+[174/180] ws_mixed_100_50 trial 24/30
+    -> runs/run-20260505-033806-5dd2e3  (113s)
+[175/180] ws_mixed_100_50 trial 25/30
+    -> runs/run-20260505-033959-922c00  (116s)
+[176/180] ws_mixed_100_50 trial 26/30
+    -> runs/run-20260505-034155-e27938  (117s)
+[177/180] ws_mixed_100_50 trial 27/30
+    -> runs/run-20260505-034351-ca5faa  (102s)
+[178/180] ws_mixed_100_50 trial 28/30
+    -> runs/run-20260505-034533-021e9a  (112s)
+[179/180] ws_mixed_100_50 trial 29/30
+    -> runs/run-20260505-034725-652997  (105s)
+[180/180] ws_mixed_100_50 trial 30/30
+    -> runs/run-20260505-034910-82e66a  (102s)
+
+==> Suite complete in 227m 26s
+==> Manifest: results/suite-20260505-000326/manifest.csv
+
+Aggregate with:
+  python -m scripts.aggregate_results results/suite-20260505-000326/manifest.csv
+
+==> Aggregating: results/suite-20260505-000326
+Wrote results/suite-20260505-000326/comparison.md
+Wrote results/suite-20260505-000326/raw_metrics.csv
+Wrote results/suite-20260505-000326/summary.csv
+
+# Benchmark Suite Comparison
+
+**Suite:** `suite-20260505-000326`  
+**Trials per config:** 30  
+**Cluster:** read from each run's NVML monitor output
+
+Format: `mean ± std` across trials. Δ column is the percent change of
+work stealing relative to baseline. Lower is better for latency, queue
+wait, util std, and max imbalance. Avg request time should be invariant
+(it is GPU compute, not affected by the scheduler).
+
+## Experiment 1: PTQ inference (100 jobs)
+
+| Metric | Baseline | Work Stealing | Δ |
+|--------|----------|---------------|---|
+| Avg job latency (ms) | 1414.8 ± 140.1 | 1602.6 ± 490.0 | ↑ 13.3% *worse* |
+| p50 job latency (ms) | 1116.7 ± 150.7 | 1260.3 ± 358.8 | ↑ 12.9% *worse* |
+| p95 job latency (ms) | 2701.4 ± 501.1 | 3308.8 ± 1964.7 | ↑ 22.5% *worse* |
+| p99 job latency (ms) | 3180.1 ± 597.5 | 3803.0 ± 2080.8 | ↑ 19.6% *worse* |
+| Avg queue wait (ms) | 484.3 ± 138.1 | 668.8 ± 486.5 | ↑ 38.1% *worse* |
+| Avg request time (ms) | 46.52 ± 0.20 | 46.69 ± 0.31 | ≈ same |
+| Cluster util mean (%) | 67.3 ± 5.6 | 67.5 ± 6.1 | ≈ same |
+| Cluster util std | 2.96 ± 1.26 | 1.72 ± 1.09 | ↓ 42.1% **better** |
+| Max util imbalance (%) | 5.9 ± 2.5 | 3.4 ± 2.2 | ↓ 42.1% **better** |
+| Avg temperature (C) | 54.9 ± 1.3 | 55.3 ± 1.5 | ≈ same |
+| Steal count | — | 19 ± 5 | — |
+
+## Experiment 2: Training (50 jobs, 500 steps)
+
+| Metric | Baseline | Work Stealing | Δ |
+|--------|----------|---------------|---|
+| Training avg duration (s) | 1.07 ± 0.00 | 1.07 ± 0.00 | ≈ same |
+| Cluster util mean (%) | 71.6 ± 1.0 | 71.7 ± 0.6 | ≈ same |
+| Cluster util std | 0.36 ± 0.30 | 0.41 ± 0.29 | ↑ 15.0% *worse* |
+| Max util imbalance (%) | 0.7 ± 0.6 | 0.8 ± 0.6 | ↑ 15.0% *worse* |
+| Avg temperature (C) | 53.4 ± 0.3 | 53.2 ± 0.2 | ≈ same |
+| Steal count | — | 0 ± 0 | — |
+
+## Experiment 3: Mixed (100 PTQ + 50 training)
+
+| Metric | Baseline | Work Stealing | Δ |
+|--------|----------|---------------|---|
+| Avg job latency (ms) | 1721.6 ± 310.6 | 1828.0 ± 362.9 | ↑ 6.2% *worse* |
+| p50 job latency (ms) | 1389.8 ± 336.8 | 1546.0 ± 435.9 | ↑ 11.2% *worse* |
+| p95 job latency (ms) | 3552.1 ± 905.6 | 3751.8 ± 855.6 | ↑ 5.6% *worse* |
+| p99 job latency (ms) | 4098.2 ± 1047.4 | 4551.4 ± 814.6 | ↑ 11.1% *worse* |
+| Avg queue wait (ms) | 794.8 ± 306.9 | 897.1 ± 359.7 | ↑ 12.9% *worse* |
+| Avg request time (ms) | 46.25 ± 0.24 | 46.45 ± 0.23 | ≈ same |
+| Training avg duration (s) | 1.07 ± 0.00 | 1.07 ± 0.00 | ≈ same |
+| Cluster util mean (%) | 67.3 ± 5.3 | 69.9 ± 4.9 | ↑ 3.8% |
+| Cluster util std | 2.38 ± 1.11 | 1.37 ± 1.10 | ↓ 42.5% **better** |
+| Max util imbalance (%) | 4.8 ± 2.2 | 2.7 ± 2.2 | ↓ 42.5% **better** |
+| Avg temperature (C) | 54.3 ± 1.2 | 55.4 ± 1.2 | ↑ 1.9% |
+| Steal count | — | 28 ± 8 | — |
+

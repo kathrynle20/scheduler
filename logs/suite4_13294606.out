@@ -1,0 +1,79 @@
+==> Job 13294606 on node4210
+GPU 0: NVIDIA L40S (UUID: GPU-a9d0be9b-eba4-be8b-6b93-aa7fa6055510)
+GPU 1: NVIDIA L40S (UUID: GPU-4e0ad3de-7e2a-8d14-45e7-1c7c1ed6ae30)
+GPU 2: NVIDIA L40S (UUID: GPU-70aa8e54-19a7-90bf-f0c1-1f517d25920b)
+GPU 3: NVIDIA L40S (UUID: GPU-6323e480-fd0c-dd41-a05c-bbf5fe403b03)
+
+==> Running 10 benchmark runs
+    suite dir: results/suite-20260504-233504
+    configs:   ptq_100 ws_ptq_100
+    trials:    5 each
+    gpus:      4 (override)
+
+[1/10] ptq_100 trial 1/5
+    -> runs/run-20260504-233504-72a659  (80s)
+[2/10] ptq_100 trial 2/5
+    -> runs/run-20260504-233624-c192d6  (79s)
+[3/10] ptq_100 trial 3/5
+    -> runs/run-20260504-233743-c36fb5  (69s)
+[4/10] ptq_100 trial 4/5
+    -> runs/run-20260504-233853-f3dd9e  (86s)
+[5/10] ptq_100 trial 5/5
+    -> runs/run-20260504-234018-445e19  (78s)
+[6/10] ws_ptq_100 trial 1/5
+    -> runs/run-20260504-234136-37621a  (81s)
+[7/10] ws_ptq_100 trial 2/5
+    -> runs/run-20260504-234257-cc41ac  (75s)
+[8/10] ws_ptq_100 trial 3/5
+    -> runs/run-20260504-234412-afa6e8  (79s)
+[9/10] ws_ptq_100 trial 4/5
+    -> runs/run-20260504-234531-2aef8f  (77s)
+[10/10] ws_ptq_100 trial 5/5
+    -> runs/run-20260504-234649-b179c4  (81s)
+
+==> Suite complete in 13m 5s
+==> Manifest: results/suite-20260504-233504/manifest.csv
+
+Aggregate with:
+  python -m scripts.aggregate_results results/suite-20260504-233504/manifest.csv
+
+==> Aggregating: results/suite-20260504-233504
+Wrote results/suite-20260504-233504/comparison.md
+Wrote results/suite-20260504-233504/raw_metrics.csv
+Wrote results/suite-20260504-233504/summary.csv
+
+# Benchmark Suite Comparison
+
+**Suite:** `suite-20260504-233504`  
+**Trials per config:** 5  
+**Cluster:** read from each run's NVML monitor output
+
+Format: `mean ± std` across trials. Δ column is the percent change of
+work stealing relative to baseline. Lower is better for latency, queue
+wait, util std, and max imbalance. Avg request time should be invariant
+(it is GPU compute, not affected by the scheduler).
+
+## Experiment 1: PTQ inference (100 jobs)
+
+| Metric | Baseline | Work Stealing | Δ |
+|--------|----------|---------------|---|
+| Avg job latency (ms) | 1062.5 ± 90.7 | 1017.1 ± 16.4 | ↓ 4.3% **better** |
+| p50 job latency (ms) | 953.0 ± 10.4 | 961.4 ± 1.9 | ≈ same |
+| p95 job latency (ms) | 1696.8 ± 809.5 | 1193.5 ± 122.8 | ↓ 29.7% **better** |
+| p99 job latency (ms) | 2767.2 ± 1143.4 | 2248.7 ± 549.9 | ↓ 18.7% **better** |
+| Avg queue wait (ms) | 145.7 ± 100.7 | 92.5 ± 15.7 | ↓ 36.5% **better** |
+| Avg request time (ms) | 45.84 ± 0.56 | 46.23 ± 0.06 | ≈ same |
+| Cluster util mean (%) | 32.8 ± 2.6 | 32.6 ± 1.0 | ≈ same |
+| Cluster util std | 5.05 ± 1.09 | 3.94 ± 1.27 | ↓ 22.1% **better** |
+| Max util imbalance (%) | 13.3 ± 3.3 | 10.1 ± 2.8 | ↓ 24.3% **better** |
+| Avg temperature (C) | 48.7 ± 3.4 | 50.9 ± 0.4 | ↑ 4.6% |
+| Steal count | — | 62 ± 3 | — |
+
+## Experiment 2: Training (50 jobs, 500 steps)
+
+_No data for either config._
+
+## Experiment 3: Mixed (100 PTQ + 50 training)
+
+_No data for either config._
+

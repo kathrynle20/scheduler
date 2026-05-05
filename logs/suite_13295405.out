@@ -1,0 +1,176 @@
+==> Job 13295405 on node1634
+GPU 0: NVIDIA L40S (UUID: GPU-a601c9f5-4885-0d2b-d58a-b04ebe378746)
+GPU 1: NVIDIA L40S (UUID: GPU-fcf3d0f0-4dee-396a-a1f2-722e7e521db7)
+
+==> Running 60 benchmark runs
+    suite dir: results/suite-20260504-224801
+    configs:   ptq_100 ws_ptq_100 train_50 ws_train_50 mixed_100_50 ws_mixed_100_50
+    trials:    10 each
+
+[1/60] ptq_100 trial 1/10
+    -> runs/run-20260504-224802-e05f99  (77s)
+[2/60] ptq_100 trial 2/10
+    -> runs/run-20260504-224918-9da100  (66s)
+[3/60] ptq_100 trial 3/10
+    -> runs/run-20260504-225024-7e7c40  (66s)
+[4/60] ptq_100 trial 4/10
+    -> runs/run-20260504-225130-fb6318  (87s)
+[5/60] ptq_100 trial 5/10
+    -> runs/run-20260504-225257-000e65  (71s)
+[6/60] ptq_100 trial 6/10
+    -> runs/run-20260504-225408-feb269  (70s)
+[7/60] ptq_100 trial 7/10
+    -> runs/run-20260504-225519-98429a  (88s)
+[8/60] ptq_100 trial 8/10
+    -> runs/run-20260504-225646-0ba65e  (78s)
+[9/60] ptq_100 trial 9/10
+    -> runs/run-20260504-225804-975a26  (76s)
+[10/60] ptq_100 trial 10/10
+    -> runs/run-20260504-225920-1886ed  (73s)
+[11/60] ws_ptq_100 trial 1/10
+    -> runs/run-20260504-230033-fb4eaf  (76s)
+[12/60] ws_ptq_100 trial 2/10
+    -> runs/run-20260504-230149-b2f173  (71s)
+[13/60] ws_ptq_100 trial 3/10
+    -> runs/run-20260504-230300-8b9d34  (72s)
+[14/60] ws_ptq_100 trial 4/10
+    -> runs/run-20260504-230412-e6d6df  (66s)
+[15/60] ws_ptq_100 trial 5/10
+    -> runs/run-20260504-230519-551c74  (79s)
+[16/60] ws_ptq_100 trial 6/10
+    -> runs/run-20260504-230637-075f78  (65s)
+[17/60] ws_ptq_100 trial 7/10
+    -> runs/run-20260504-230742-f3c1d8  (69s)
+[18/60] ws_ptq_100 trial 8/10
+    -> runs/run-20260504-230851-c6ca5b  (68s)
+[19/60] ws_ptq_100 trial 9/10
+    -> runs/run-20260504-230959-48ef50  (71s)
+[20/60] ws_ptq_100 trial 10/10
+    -> runs/run-20260504-231110-611869  (78s)
+[21/60] train_50 trial 1/10
+    -> runs/run-20260504-231228-0bd759  (40s)
+[22/60] train_50 trial 2/10
+    -> runs/run-20260504-231308-c6db7d  (39s)
+[23/60] train_50 trial 3/10
+    -> runs/run-20260504-231347-487e71  (39s)
+[24/60] train_50 trial 4/10
+    -> runs/run-20260504-231426-6bea8b  (38s)
+[25/60] train_50 trial 5/10
+    -> runs/run-20260504-231504-40970c  (39s)
+[26/60] train_50 trial 6/10
+    -> runs/run-20260504-231543-019ad2  (38s)
+[27/60] train_50 trial 7/10
+    -> runs/run-20260504-231622-249bc3  (39s)
+[28/60] train_50 trial 8/10
+    -> runs/run-20260504-231701-a2fd34  (39s)
+[29/60] train_50 trial 9/10
+    -> runs/run-20260504-231739-c15a8e  (39s)
+[30/60] train_50 trial 10/10
+    -> runs/run-20260504-231819-928b5c  (39s)
+[31/60] ws_train_50 trial 1/10
+    -> runs/run-20260504-231858-0db659  (39s)
+[32/60] ws_train_50 trial 2/10
+    -> runs/run-20260504-231936-80eed9  (38s)
+[33/60] ws_train_50 trial 3/10
+    -> runs/run-20260504-232014-8a1827  (38s)
+[34/60] ws_train_50 trial 4/10
+    -> runs/run-20260504-232053-aee38c  (40s)
+[35/60] ws_train_50 trial 5/10
+    -> runs/run-20260504-232133-5bb071  (39s)
+[36/60] ws_train_50 trial 6/10
+    -> runs/run-20260504-232211-b46594  (38s)
+[37/60] ws_train_50 trial 7/10
+    -> runs/run-20260504-232250-81a91f  (39s)
+[38/60] ws_train_50 trial 8/10
+    -> runs/run-20260504-232328-c9ee68  (40s)
+[39/60] ws_train_50 trial 9/10
+    -> runs/run-20260504-232408-03df90  (38s)
+[40/60] ws_train_50 trial 10/10
+    -> runs/run-20260504-232446-249b0d  (39s)
+[41/60] mixed_100_50 trial 1/10
+    -> runs/run-20260504-232525-4330d8  (110s)
+[42/60] mixed_100_50 trial 2/10
+    -> runs/run-20260504-232715-eb0ffd  (108s)
+[43/60] mixed_100_50 trial 3/10
+    -> runs/run-20260504-232904-479956  (113s)
+[44/60] mixed_100_50 trial 4/10
+    -> runs/run-20260504-233057-745003  (114s)
+[45/60] mixed_100_50 trial 5/10
+    -> runs/run-20260504-233250-f5a0b7  (121s)
+[46/60] mixed_100_50 trial 6/10
+    -> runs/run-20260504-233451-a607d0  (106s)
+[47/60] mixed_100_50 trial 7/10
+    -> runs/run-20260504-233638-24743c  (98s)
+[48/60] mixed_100_50 trial 8/10
+    -> runs/run-20260504-233816-c202e9  (131s)
+[49/60] mixed_100_50 trial 9/10
+    -> runs/run-20260504-234026-1cbdda  (118s)
+[50/60] mixed_100_50 trial 10/10
+    -> runs/run-20260504-234224-7325dc  (116s)
+[51/60] ws_mixed_100_50 trial 1/10
+    -> runs/run-20260504-234421-c27e7f  (115s)
+[52/60] ws_mixed_100_50 trial 2/10
+    -> runs/run-20260504-234615-6821a9  (115s)
+[53/60] ws_mixed_100_50 trial 3/10
+    -> runs/run-20260504-234811-11e5ef  (105s)
+[54/60] ws_mixed_100_50 trial 4/10
+    -> runs/run-20260504-234955-d8713c  (98s)
+[55/60] ws_mixed_100_50 trial 5/10
+    -> runs/run-20260504-235133-7cb37f  (115s)
+[56/60] ws_mixed_100_50 trial 6/10
+    -> runs/run-20260504-235328-ea8e3a  (125s)
+[57/60] ws_mixed_100_50 trial 7/10
+    -> runs/run-20260504-235533-d6d711  (94s)
+[58/60] ws_mixed_100_50 trial 8/10
+    -> runs/run-20260504-235707-96fcc1  (104s)
+[59/60] ws_mixed_100_50 trial 9/10
+    -> runs/run-20260504-235851-81c7f2  (115s)
+[60/60] ws_mixed_100_50 trial 10/10
+    -> runs/run-20260505-000046-797951  (114s)
+
+==> Suite complete in 74m 39s
+==> Manifest: results/suite-20260504-224801/manifest.csv
+
+Aggregate with:
+  python -m scripts.aggregate_results results/suite-20260504-224801/manifest.csv
+
+==> Aggregating: results/suite-20260504-233504
+Wrote results/suite-20260504-233504/comparison.md
+Wrote results/suite-20260504-233504/raw_metrics.csv
+Wrote results/suite-20260504-233504/summary.csv
+
+# Benchmark Suite Comparison
+
+**Suite:** `suite-20260504-233504`  
+**Trials per config:** 5  
+**Cluster:** read from each run's NVML monitor output
+
+Format: `mean ± std` across trials. Δ column is the percent change of
+work stealing relative to baseline. Lower is better for latency, queue
+wait, util std, and max imbalance. Avg request time should be invariant
+(it is GPU compute, not affected by the scheduler).
+
+## Experiment 1: PTQ inference (100 jobs)
+
+| Metric | Baseline | Work Stealing | Δ |
+|--------|----------|---------------|---|
+| Avg job latency (ms) | 1062.5 ± 90.7 | 1017.1 ± 16.4 | ↓ 4.3% **better** |
+| p50 job latency (ms) | 953.0 ± 10.4 | 961.4 ± 1.9 | ≈ same |
+| p95 job latency (ms) | 1696.8 ± 809.5 | 1193.5 ± 122.8 | ↓ 29.7% **better** |
+| p99 job latency (ms) | 2767.2 ± 1143.4 | 2248.7 ± 549.9 | ↓ 18.7% **better** |
+| Avg queue wait (ms) | 145.7 ± 100.7 | 92.5 ± 15.7 | ↓ 36.5% **better** |
+| Avg request time (ms) | 45.84 ± 0.56 | 46.23 ± 0.06 | ≈ same |
+| Cluster util mean (%) | 32.8 ± 2.6 | 32.6 ± 1.0 | ≈ same |
+| Cluster util std | 5.05 ± 1.09 | 3.94 ± 1.27 | ↓ 22.1% **better** |
+| Max util imbalance (%) | 13.3 ± 3.3 | 10.1 ± 2.8 | ↓ 24.3% **better** |
+| Avg temperature (C) | 48.7 ± 3.4 | 50.9 ± 0.4 | ↑ 4.6% |
+| Steal count | — | 62 ± 3 | — |
+
+## Experiment 2: Training (50 jobs, 500 steps)
+
+_No data for either config._
+
+## Experiment 3: Mixed (100 PTQ + 50 training)
+
+_No data for either config._
+

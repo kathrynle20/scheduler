@@ -1,0 +1,15 @@
+
+============================================================
+  Summary for runs/run-20260504-192833-ce1a6b
+============================================================
+  PTQ avg latency:      0.09 ms
+  PTQ latency pctiles:  p50=0.08ms, p95=0.11ms, p99=0.13ms
+  Training avg duration: 0.08 s
+  Per-GPU temperatures:
+    GPU 0: mean=30.5C, max=31.0C, std=0.5C
+    GPU 1: mean=30.7C, max=32.0C, std=0.8C
+  Avg temperature (all GPUs): 30.6 C
+  Per-GPU mean util:    gpu0=0.2%, gpu1=0.0%
+  Cluster util:         mean=0.1%, std=0.10, max_imbalance=0.2%
+============================================================
+
