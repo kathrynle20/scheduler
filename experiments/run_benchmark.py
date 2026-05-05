@@ -110,7 +110,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--monitor", choices=["nvml", "simulated"], default=None,
                     help="override monitor.backend from the config")
     ap.add_argument("--num-gpus", type=int, default=None,
-                    help="override the number of GPUs (0..N-1); auto-generates ids, worker_gpus, neighbors)")
+                    help="override the number of GPUs (0..N-1); auto-generates ids, worker_gpus, neighbors")
+    ap.add_argument("--arrival-rate", type=float, default=None,
+                    help="override arrival_rate_hz from the config (jobs/sec across all GPUs). "
+                         "Target util ≈ (arrival_rate / num_gpus) × job_duration_s. "
+                         "Scale linearly with num_gpus to keep utilization constant: "
+                         "e.g. 1.4 hz on 2 GPUs → 2.8 hz on 4 GPUs for the same ~65%% util.")
     ap.add_argument("-v", "--verbose", action="store_true",
                     help="enable DEBUG logging (per-scheduler decision rationale)")
     args = ap.parse_args(argv)
@@ -127,6 +132,9 @@ def main(argv: list[str] | None = None) -> int:
             "worker_gpus": ids,
             "neighbors": {i: [j for j in ids if j != i] for i in ids},
         }
+
+    if args.arrival_rate is not None:
+        config["arrival_rate_hz"] = args.arrival_rate
 
     log.info(
         "config=%s scheduler=%s monitor=%s gpus=%s",

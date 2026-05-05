@@ -2,13 +2,18 @@
 # Run the full benchmark suite: 3 experiments × 2 schedulers × N trials.
 #
 # Usage:
-#   scripts/run_suite.sh [N_TRIALS] [FILTER] [NUM_GPUS]
-#     N_TRIALS  Number of trials per config (default 3)
-#     FILTER    Substring to match config names; runs only matching ones
-#                 e.g. "ptq" runs ptq_100 + ws_ptq_100 only
-#                 e.g. "ws"  runs all work-stealing configs only
-#     NUM_GPUS  Override number of GPUs (default: use whatever is in each config YAML)
-#                 e.g. 4 to run all configs on 4 GPUs instead of 2
+#   scripts/run_suite.sh [N_TRIALS] [FILTER] [NUM_GPUS] [ARRIVAL_RATE]
+#     N_TRIALS      Number of trials per config (default 3)
+#     FILTER        Substring to match config names; runs only matching ones
+#                     e.g. "ptq" runs ptq_100 + ws_ptq_100 only
+#                     e.g. "ws"  runs all work-stealing configs only
+#     NUM_GPUS      Override number of GPUs (default: use whatever is in each config YAML)
+#                     e.g. 4 to run all configs on 4 GPUs instead of 2
+#     ARRIVAL_RATE  Override arrival_rate_hz (jobs/sec, all GPUs combined)
+#                     Scale linearly with NUM_GPUS to keep utilization constant:
+#                       2 GPUs → 1.4   (default in YAMLs, targets ~65% util)
+#                       4 GPUs → 2.8   (same util on 4 workers)
+#                     Formula: target_util = (arrival_rate / num_gpus) × job_duration_s
 #
 # Output:
 #   results/suite-<timestamp>/
@@ -23,6 +28,7 @@ set -euo pipefail
 N_TRIALS="${1:-3}"
 FILTER="${2:-}"
 NUM_GPUS="${3:-}"
+ARRIVAL_RATE="${4:-}"
 
 CONFIGS=(
   ptq_100
@@ -56,14 +62,16 @@ echo "config,trial,run_dir" > "$MANIFEST"
 TOTAL=$((${#CONFIGS[@]} * N_TRIALS))
 COUNT=0
 
-GPU_ARGS=()
-[[ -n "$NUM_GPUS" ]] && GPU_ARGS=(--num-gpus "$NUM_GPUS")
+EXTRA_ARGS=()
+[[ -n "$NUM_GPUS" ]]      && EXTRA_ARGS+=(--num-gpus "$NUM_GPUS")
+[[ -n "$ARRIVAL_RATE" ]]  && EXTRA_ARGS+=(--arrival-rate "$ARRIVAL_RATE")
 
 echo "==> Running $TOTAL benchmark runs"
-echo "    suite dir: $SUITE_DIR"
-echo "    configs:   ${CONFIGS[*]}"
-echo "    trials:    $N_TRIALS each"
-[[ -n "$NUM_GPUS" ]] && echo "    gpus:      $NUM_GPUS (override)"
+echo "    suite dir:     $SUITE_DIR"
+echo "    configs:       ${CONFIGS[*]}"
+echo "    trials:        $N_TRIALS each"
+[[ -n "$NUM_GPUS" ]]     && echo "    gpus:          $NUM_GPUS (override)"
+[[ -n "$ARRIVAL_RATE" ]] && echo "    arrival rate:  $ARRIVAL_RATE hz (override)"
 echo ""
 
 START_ALL=$(date +%s)
@@ -85,7 +93,7 @@ for config in "${CONFIGS[@]}"; do
     {
       echo ""
       echo "===== [$COUNT/$TOTAL] $config trial $trial ====="
-      python -m experiments.run_benchmark --config "$config_path" --monitor nvml "${GPU_ARGS[@]}"
+      python -m experiments.run_benchmark --config "$config_path" --monitor nvml "${EXTRA_ARGS[@]}"
     } >> "$LOG" 2>&1
 
     AFTER=$(ls -1 runs/ 2>/dev/null | sort || true)
