@@ -1,15 +1,22 @@
-# Experiment 1 (baseline): 100 PTQ inference jobs only.
+# Experiment 1 (no-steal baseline): 100 PTQ inference jobs only.
 # 2-GPU setup for Engaging cluster (mit_normal_gpu default quota).
 #
-# Sizing rationale (targeting ~70% GPU utilization):
+# Sizing rationale (targeting ~65% GPU utilization):
 #   matrix_size=16384    → measured ~47ms/matmul on L40S
 #   num_requests=20      → ~0.94s/job  (20 × 47ms)
-#   arrival_rate_hz=1.5  → 1.5 jobs/sec across 2 GPUs
-#   mean util ≈ (1.5/2) × 0.94 = 0.705  →  ~70% per GPU
+#   arrival_rate_hz=1.4  → 1.4 jobs/sec across 2 GPUs
+#   mean util ≈ (1.4/2) × 0.94 = 0.658  →  ~66% per GPU
 #
 # poisson_arrivals: true gives exponentially distributed inter-arrival gaps
 # (realistic bursty inference traffic). Bursts create short-lived queue
 # imbalances for the work-stealing comparison to act on.
+#
+# ARCHITECTURE NOTE: Both this config and ws_ptq_100.yaml now use the same
+# WorkStealingRunner (per-GPU queues, greedy pre-assignment) and the same
+# JSQ placement algorithm (WorkStealingScheduler). The ONLY difference is
+# steal_threshold: this config sets it to 99999 so stealing never fires.
+# This ensures the comparison is: "JSQ placement alone" vs "JSQ + stealing".
+# See docs/architecture_decision.md for rationale.
 gpus:
   ids: [0, 1]
   worker_gpus: [0, 1]
@@ -18,7 +25,9 @@ gpus:
     1: [0]
 
 scheduler:
-  name: baseline
+  name: work_stealing
+  work_stealing:
+    steal_threshold: 99999  # effectively disables stealing — baseline comparison mode
 
 monitor:
   backend: nvml

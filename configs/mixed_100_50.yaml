@@ -1,5 +1,8 @@
-# Experiment 3 (baseline): 100 PTQ + 50 training jobs (500 steps each), interleaved.
+# Experiment 3 (no-steal baseline): 100 PTQ + 50 training jobs (500 steps each), interleaved.
 # 2-GPU setup for Engaging cluster (mit_normal_gpu default quota).
+#
+# steal_threshold: 99999 disables stealing — same architecture as ws_mixed_100_50.yaml
+# but with no reactive rebalancing. See docs/architecture_decision.md.
 gpus:
   ids: [0, 1]
   worker_gpus: [0, 1]
@@ -8,7 +11,9 @@ gpus:
     1: [0]
 
 scheduler:
-  name: baseline
+  name: work_stealing
+  work_stealing:
+    steal_threshold: 99999  # effectively disables stealing — baseline comparison mode
 
 monitor:
   backend: nvml

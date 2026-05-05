@@ -157,13 +157,20 @@ def main(argv: list[str] | None = None) -> int:
 
     if isinstance(scheduler, WorkStealingScheduler):
         ws_cfg = config["scheduler"].get("work_stealing") or {}
+        steal_threshold = int(ws_cfg.get("steal_threshold", 2))
+        stealing_active = steal_threshold < 9999
+        log.info(
+            "runner=WorkStealingRunner steal_threshold=%d (%s)",
+            steal_threshold,
+            "stealing ENABLED" if stealing_active else "stealing DISABLED — baseline mode",
+        )
         runner = WorkStealingRunner(
             scheduler=scheduler,
             monitor=monitor,
             collector=collector,
             output_root=Path(config.get("output_dir", "runs")),
             worker_gpu_ids=worker_gpu_ids,
-            steal_threshold=int(ws_cfg.get("steal_threshold", 2)),
+            steal_threshold=steal_threshold,
         )
     else:
         runner = ExperimentRunner(
