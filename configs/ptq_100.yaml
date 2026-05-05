@@ -1,9 +1,14 @@
 # Experiment 1 (baseline): 100 PTQ inference jobs only.
 # 2-GPU setup for Engaging cluster (mit_normal_gpu default quota).
 #
-# matrix_size=16384 makes each matmul ~24ms on L40S (realistic for large
-# quantized model inference). num_requests=100 makes each job ~2.4s so
-# queues build up and scheduling decisions have measurable latency impact.
+# Sizing rationale (targeting ~65% GPU utilization):
+#   matrix_size=16384  → ~24ms per matmul on L40S (realistic quantized inference)
+#   num_requests=50    → ~1.2s per job
+#   arrival_rate_hz=1  → 1 job/sec across 2 GPUs
+#   utilization ≈ (1.0/2) × 1.2 = 0.60  →  60-65% per GPU
+#
+# This keeps GPUs in the energy-proportional region (50-70%) recommended by
+# the professor, where latency is still stable (not hockey-sticking yet).
 gpus:
   ids: [0, 1]
   worker_gpus: [0, 1]
@@ -23,9 +28,9 @@ monitor:
     k_cool: 0.05
     k_neighbor: 0.1
 
-arrival_rate_hz: 2
+arrival_rate_hz: 1.0
 
 workload_mix:
-  - {type: ptq, count: 100, mem_required_mb: 4096, num_requests: 100, matrix_size: 16384}
+  - {type: ptq, count: 100, mem_required_mb: 4096, num_requests: 50, matrix_size: 16384}
 
 output_dir: ./runs

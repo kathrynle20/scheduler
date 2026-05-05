@@ -1,5 +1,7 @@
 # Experiment 3 (work stealing): 100 PTQ + 50 training jobs (500 steps each), interleaved.
 # 2-GPU setup for Engaging cluster (mit_normal_gpu default quota).
+#
+# Identical workload to mixed_100_50.yaml -- only the scheduler differs.
 gpus:
   ids: [0, 1]
   worker_gpus: [0, 1]
@@ -23,10 +25,10 @@ monitor:
     k_cool: 0.05
     k_neighbor: 0.1
 
-arrival_rate_hz: 2
+arrival_rate_hz: 1.0
 
 workload_mix:
-  - {type: ptq,      count: 100, mem_required_mb: 4096, num_requests: 100, matrix_size: 16384}
+  - {type: ptq,      count: 100, mem_required_mb: 4096, num_requests: 50, matrix_size: 16384}
   - {type: training, count: 50,  num_steps: 500, mem_required_mb: 16384}
 
 output_dir: ./runs
