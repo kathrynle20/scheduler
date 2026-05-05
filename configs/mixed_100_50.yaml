@@ -19,11 +19,11 @@ monitor:
     k_cool: 0.05
     k_neighbor: 0.1
 
-arrival_rate_hz: 1.0
+arrival_rate_hz: 1.5
 poisson_arrivals: true
 
 workload_mix:
-  - {type: ptq,      count: 100, mem_required_mb: 4096, num_requests: 25, matrix_size: 16384}
+  - {type: ptq,      count: 100, mem_required_mb: 4096, num_requests: 20, matrix_size: 16384}
   - {type: training, count: 50,  num_steps: 500, mem_required_mb: 16384}
 
 output_dir: ./runs

@@ -1,15 +1,15 @@
 # Experiment 1 (baseline): 100 PTQ inference jobs only.
 # 2-GPU setup for Engaging cluster (mit_normal_gpu default quota).
 #
-# Sizing rationale (targeting ~60% GPU utilization):
-#   matrix_size=16384   → measured ~47ms/matmul on L40S
-#   num_requests=25     → ~1.175s/job  (25 × 47ms)
-#   arrival_rate_hz=1.0 → 1 job/sec across 2 GPUs
-#   mean util ≈ (1.0/2) × 1.175 = 0.59  →  ~60% per GPU
+# Sizing rationale (targeting ~70% GPU utilization):
+#   matrix_size=16384    → measured ~47ms/matmul on L40S
+#   num_requests=20      → ~0.94s/job  (20 × 47ms)
+#   arrival_rate_hz=1.5  → 1.5 jobs/sec across 2 GPUs
+#   mean util ≈ (1.5/2) × 0.94 = 0.705  →  ~70% per GPU
 #
-# poisson_arrivals: true uses exponentially distributed inter-arrival gaps
-# (Poisson process) instead of even spacing. This is realistic for inference
-# traffic and creates the burst imbalance that work stealing acts on.
+# poisson_arrivals: true gives exponentially distributed inter-arrival gaps
+# (realistic bursty inference traffic). Bursts create short-lived queue
+# imbalances for the work-stealing comparison to act on.
 gpus:
   ids: [0, 1]
   worker_gpus: [0, 1]
@@ -29,10 +29,10 @@ monitor:
     k_cool: 0.05
     k_neighbor: 0.1
 
-arrival_rate_hz: 1.0
+arrival_rate_hz: 1.5
 poisson_arrivals: true
 
 workload_mix:
-  - {type: ptq, count: 100, mem_required_mb: 4096, num_requests: 25, matrix_size: 16384}
+  - {type: ptq, count: 100, mem_required_mb: 4096, num_requests: 20, matrix_size: 16384}
 
 output_dir: ./runs
