@@ -12,28 +12,30 @@ log = logging.getLogger(__name__)
 
 
 class WorkStealingScheduler(Scheduler):
-    """Place incoming jobs into per-GPU queues with awareness of queue length
-    and current utilization.
+    """Strict join-shortest-queue placement for the work-stealing runner.
 
-    The scheduler picks the GPU whose combined queue + utilization score is
-    highest. Stealing itself is performed by ``WorkStealingRunner``; this
-    scheduler exposes ``steal_threshold`` for that runner to consult and a
-    ``notify_dequeued`` hook so its queue-length estimates stay in sync after
-    a steal or completion.
+    The scheduler picks the GPU with the **smallest tracked queue length**
+    (running + waiting jobs). NVML utilization is sampled at 10 Hz while
+    PTQ matmul kernels run at ~50 ms granularity, so util readings are
+    too noisy to use as a primary placement signal at the single-job
+    timescale -- a low-util reading on a busy GPU can override its higher
+    queue count and produce a misrouted placement that work stealing then
+    has to rescue reactively.
 
-    Scoring (higher is better, score in [0, 1]):
-        util_penalty(u) = 1.0                          if u < target_util_low
-                        = 1 - (u - low) / (high - low) if low <= u < high
-                        = 0.0                          if u >= target_util_high
+    See ``docs/work_stealing_postmortem.md`` for the full failure analysis.
 
-        queue_score(q)  = 1.0 / (1 + q)
+    Tie-break order:
+        1. shortest queue (primary)
+        2. lower util_pct  (only matters when queues are equal)
+        3. lower gpu id    (deterministic fallback)
 
-        score(gpu)      = 0.5 * util_penalty(gpu.util_pct)
-                        + 0.5 * queue_score(queue_lengths[gpu.id])
+    Stealing itself is performed by ``WorkStealingRunner``; this scheduler
+    exposes ``steal_threshold`` for the runner to consult and a
+    ``notify_dequeued`` hook so its queue-length estimates stay in sync
+    after a steal or completion.
 
     ``place`` always returns a gpu_id when at least one GPU is offered (it
-    never defers): work-stealing relies on continuous progress, even into a
-    saturated cluster.
+    never defers): work stealing relies on continuous progress.
     """
 
     def __init__(
@@ -42,6 +44,8 @@ class WorkStealingScheduler(Scheduler):
         target_util_high: float = 70.0,
         steal_threshold: int = 2,
     ) -> None:
+        # Kept for config compatibility; no longer used in placement scoring.
+        # See postmortem for why util-weighted scoring was removed.
         self.target_util_low = float(target_util_low)
         self.target_util_high = float(target_util_high)
         self.steal_threshold = int(steal_threshold)
@@ -58,31 +62,23 @@ class WorkStealingScheduler(Scheduler):
             return None
 
         with self._lock:
-            scored = [
-                (self._score(s, self._queue_lengths[s.id]), s.id)
-                for s in gpu_states
-            ]
-            # Highest score wins; tie-break on lowest gpu id for determinism.
-            best_score, best_id = max(scored, key=lambda x: (x[0], -x[1]))
-
-            # Always make progress -- if every GPU scored 0 (everyone is
-            # overutilized), still pick the one with the shortest queue.
-            if best_score == 0.0:
-                best_id = min(
-                    (s.id for s in gpu_states),
-                    key=lambda gid: (self._queue_lengths[gid], gid),
-                )
-
-            self._queue_lengths[best_id] += 1
-            log.debug(
-                "ws place: job %s -> gpu %d (score=%.3f, q=%d, util=%.1f%%)",
-                job.id,
-                best_id,
-                best_score,
-                self._queue_lengths[best_id],
-                _find_util(gpu_states, best_id),
+            chosen = min(
+                gpu_states,
+                key=lambda s: (
+                    self._queue_lengths[s.id],   # primary: outstanding load
+                    s.util_pct,                  # tiebreak 1: cooler GPU
+                    s.id,                        # tiebreak 2: deterministic
+                ),
             )
-            return best_id
+            self._queue_lengths[chosen.id] += 1
+            log.debug(
+                "ws place: job %s -> gpu %d (q=%d, util=%.1f%%)",
+                job.id,
+                chosen.id,
+                self._queue_lengths[chosen.id],
+                chosen.util_pct,
+            )
+            return chosen.id
 
     def notify_dequeued(self, gpu_id: int) -> None:
         """The runner calls this when a job leaves *gpu_id*'s queue --
@@ -96,31 +92,3 @@ class WorkStealingScheduler(Scheduler):
         """Return a defensive copy of the current queue-length estimates."""
         with self._lock:
             return dict(self._queue_lengths)
-
-    # --------------------------------------------------------------------- #
-    #  Scoring                                                               #
-    # --------------------------------------------------------------------- #
-
-    def _score(self, gpu: GpuState, queue_len: int) -> float:
-        return 0.5 * self._util_penalty(gpu.util_pct) + 0.5 * self._queue_score(queue_len)
-
-    def _util_penalty(self, util_pct: float) -> float:
-        if util_pct < self.target_util_low:
-            return 1.0
-        if util_pct >= self.target_util_high:
-            return 0.0
-        span = self.target_util_high - self.target_util_low
-        if span <= 0:
-            return 0.0
-        return 1.0 - (util_pct - self.target_util_low) / span
-
-    @staticmethod
-    def _queue_score(queue_len: int) -> float:
-        return 1.0 / (1.0 + max(0, queue_len))
-
-
-def _find_util(states: list[GpuState], gpu_id: int) -> float:
-    for s in states:
-        if s.id == gpu_id:
-            return s.util_pct
-    return -1.0

@@ -23,8 +23,10 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
-# Brief sleep when a worker has nothing to do and nothing to steal.
-_IDLE_BACKOFF_S = 0.005
+# Upper bound on how long a worker waits on the condition variable when idle.
+# The CV is notified on placement / completion / shutdown, so this only acts
+# as a watchdog in case a notify is missed -- it should rarely fire.
+_IDLE_WAIT_S = 0.05
 
 
 class WorkStealingRunner:
@@ -39,6 +41,11 @@ class WorkStealingRunner:
     Stealing from the tail follows the classic Chase-Lev convention: the
     owner takes head (FIFO), thieves take tail (newest unstarted work),
     minimizing wasted setup effort.
+
+    Idle workers block on a ``threading.Condition`` rather than spin-sleep.
+    The condition is notified on placement (a queue grew), completion (a
+    peer's queue may now be stealable in a way it wasn't before), and
+    shutdown.
     """
 
     def __init__(
@@ -61,6 +68,7 @@ class WorkStealingRunner:
             gid: deque() for gid in self.worker_gpu_ids
         }
         self._queue_lock = threading.Lock()
+        self._queue_cv = threading.Condition(self._queue_lock)
         self._all_dispatched = False
         self._jobs_remaining = 0
         self._steal_count = 0
@@ -129,10 +137,12 @@ class WorkStealingRunner:
                         continue
 
                     workload: "Workload" = workload_factory(job)
-                    with self._queue_lock:
+                    with self._queue_cv:
                         self._queues[gpu_id].append((job, workload))
                         self._jobs_remaining += 1
                         q_len = len(self._queues[gpu_id])
+                        # Wake any idle worker (the queue's owner, or a thief).
+                        self._queue_cv.notify_all()
 
                     placed += 1
                     log.info(
@@ -145,8 +155,9 @@ class WorkStealingRunner:
                     )
 
                 # Tell workers the input stream is closed.
-                with self._queue_lock:
+                with self._queue_cv:
                     self._all_dispatched = True
+                    self._queue_cv.notify_all()
 
                 # Wait for all in-flight work to finish.
                 for t in worker_threads:
@@ -154,8 +165,9 @@ class WorkStealingRunner:
 
         finally:
             # Make sure workers don't block on a dropped main thread.
-            with self._queue_lock:
+            with self._queue_cv:
                 self._all_dispatched = True
+                self._queue_cv.notify_all()
             for t in worker_threads:
                 if t.is_alive():
                     t.join(timeout=5.0)
@@ -228,8 +240,11 @@ class WorkStealingRunner:
                 log.exception("[%s] failed on GPU %d", job.id, gpu_id)
             finally:
                 self._set_monitor_load(gpu_id, util_pct=0.0, mem_mb=0)
-                with self._queue_lock:
+                with self._queue_cv:
                     self._jobs_remaining -= 1
+                    # Wake peers: this worker is now free to steal, and the
+                    # shutdown check (_jobs_remaining == 0) may now pass.
+                    self._queue_cv.notify_all()
                 self.scheduler.notify_dequeued(gpu_id)
 
     # --------------------------------------------------------------------- #
@@ -238,7 +253,7 @@ class WorkStealingRunner:
 
     def _dequeue(self, gpu_id: int) -> "tuple[Job, Workload] | None":
         while True:
-            with self._queue_lock:
+            with self._queue_cv:
                 if self._queues[gpu_id]:
                     return self._queues[gpu_id].popleft()
 
@@ -249,7 +264,10 @@ class WorkStealingRunner:
                 if self._all_dispatched and self._jobs_remaining == 0:
                     return None
 
-            time.sleep(_IDLE_BACKOFF_S)
+                # Block until a producer notifies us. Timeout acts as a
+                # watchdog in case a notify is somehow missed; under normal
+                # operation we wake immediately on placement / completion.
+                self._queue_cv.wait(timeout=_IDLE_WAIT_S)
 
     def _try_steal_locked(self, thief_id: int) -> "tuple[Job, Workload] | None":
         """Steal a job from the tail of the most-loaded victim queue.
