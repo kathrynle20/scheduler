@@ -216,22 +216,111 @@ python -m experiments.run_benchmark \
   -v
 ```
 
-To run on **4 GPUs** (assuming your machine has them and they show in
-`nvidia-smi -L`), keep mean per-GPU utilization roughly the same by scaling
-the arrival rate linearly:
+### 6.4. Scaling to 4 / 8 GPUs at ~70% utilization
+
+Per-GPU utilization is roughly:
+
+```
+target_util ≈ (arrival_rate / num_gpus) × job_duration_s
+```
+
+For the **PTQ** workload (`num_requests: 20`, `matrix_size: 16384`,
+~0.94 s per job on L40S), targeting **~70%** mean per-GPU utilization gives:
+
+| GPUs | `--num-gpus` | `--arrival-rate` (hz) | Predicted per-GPU util |
+|------|--------------|------------------------|--------------------------|
+| 2    | `2`          | `1.5`                  | ~70% |
+| 4    | `4`          | `3.0`                  | ~70% |
+| 8    | `8`          | `6.0`                  | ~70% |
+
+(The shipped YAMLs use **1.4 hz** on 2 GPUs which is ~66%. Bumping to 1.5/3.0/6.0
+hits the ~70% mark cleanly. Different GPUs will give slightly different
+per-matmul times — re-tune if you see the printed `PTQ avg request time`
+drift away from ~47 ms.)
+
+#### Single experiment
+
+**4 GPUs, PTQ baseline (no-steal):**
 
 ```bash
 python -m experiments.run_benchmark \
   --config configs/ptq_100.yaml \
   --monitor nvml \
   --num-gpus 4 \
-  --arrival-rate 2.8 \
+  --arrival-rate 3.0 \
   -v
 ```
 
-(`(arrival_rate / num_gpus) × job_duration_s ≈ target util`. The default 1.4
-hz with 2 GPUs targets ~65–70% per GPU; on 4 GPUs use 2.8 hz for the same
-load per worker.)
+**4 GPUs, PTQ work-stealing:**
+
+```bash
+python -m experiments.run_benchmark \
+  --config configs/ws_ptq_100.yaml \
+  --monitor nvml \
+  --num-gpus 4 \
+  --arrival-rate 3.0 \
+  -v
+```
+
+**8 GPUs, PTQ baseline:**
+
+```bash
+python -m experiments.run_benchmark \
+  --config configs/ptq_100.yaml \
+  --monitor nvml \
+  --num-gpus 8 \
+  --arrival-rate 6.0 \
+  -v
+```
+
+**8 GPUs, PTQ work-stealing:**
+
+```bash
+python -m experiments.run_benchmark \
+  --config configs/ws_ptq_100.yaml \
+  --monitor nvml \
+  --num-gpus 8 \
+  --arrival-rate 6.0 \
+  -v
+```
+
+Swap the config path for `mixed_100_50.yaml` / `ws_mixed_100_50.yaml` to run
+the mixed PTQ + training experiment at the same per-GPU load (mixed jobs are
+also dominated by ~0.94–1.07 s durations, so the same arrival rate is a
+good first cut).
+
+The **training-only** configs are designed to keep both GPUs near-saturated
+even at the default 2.0 hz; for 4 / 8 GPUs you can keep `2.0 hz` on 2 GPUs
+or pass `--arrival-rate 4.0` / `8.0` if you want similarly heavy load on the
+larger fleets — but training experiments are deliberately not where work
+stealing helps, so tail-latency comparisons there are less interesting.
+
+#### Full suite at ~70% util
+
+`run_suite.sh` accepts `[N_TRIALS] [FILTER] [NUM_GPUS] [ARRIVAL_RATE]`, so:
+
+```bash
+# 5 trials, all 6 configs, 4 GPUs at ~70% util
+bash scripts/run_suite.sh 5 "" 4 3.0
+
+# 5 trials, all 6 configs, 8 GPUs at ~70% util
+bash scripts/run_suite.sh 5 "" 8 6.0
+
+# Just the PTQ pair, 5 trials, 8 GPUs at ~70% util
+bash scripts/run_suite.sh 5 ptq 8 6.0
+```
+
+Then aggregate as in §7.4:
+
+```bash
+LATEST=$(ls -td results/suite-* | head -1)
+python -m scripts.aggregate_results "$LATEST/manifest.csv"
+```
+
+> If your machine has more physical GPUs than you want the run to use
+> (e.g. 8 installed, you only want to test on 4), pin them with
+> `export CUDA_VISIBLE_DEVICES=0,1,2,3` before launching — `--num-gpus` only
+> chooses among GPUs the process can already see.
 
 ### 6.3. Where output goes
 
@@ -396,12 +485,22 @@ export CUDA_DEVICE_ORDER=PCI_BUS_ID
 # Smoke
 python -m experiments.run_benchmark --config configs/smoke.yaml --monitor simulated
 
-# One real-GPU experiment (PTQ baseline, 2 GPUs)
+# One real-GPU experiment (PTQ baseline, 2 GPUs, ~70% util)
 python -m experiments.run_benchmark \
-  --config configs/ptq_100.yaml --monitor nvml --num-gpus 2 -v
+  --config configs/ptq_100.yaml --monitor nvml --num-gpus 2 --arrival-rate 1.5 -v
 
-# Full suite, 5 trials, 2 GPUs
-bash scripts/run_suite.sh 5 "" 2
+# Same on 4 GPUs at ~70% util
+python -m experiments.run_benchmark \
+  --config configs/ptq_100.yaml --monitor nvml --num-gpus 4 --arrival-rate 3.0 -v
+
+# Same on 8 GPUs at ~70% util
+python -m experiments.run_benchmark \
+  --config configs/ptq_100.yaml --monitor nvml --num-gpus 8 --arrival-rate 6.0 -v
+
+# Full suite, 5 trials, at ~70% util
+bash scripts/run_suite.sh 5 "" 2 1.5    # 2 GPUs
+bash scripts/run_suite.sh 5 "" 4 3.0    # 4 GPUs
+bash scripts/run_suite.sh 5 "" 8 6.0    # 8 GPUs
 
 # Aggregate the latest suite
 LATEST=$(ls -td results/suite-* | head -1)
