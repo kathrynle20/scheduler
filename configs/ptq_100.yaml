@@ -1,22 +1,27 @@
 # Experiment 1 (no-steal baseline): 100 PTQ inference jobs only.
 # 2-GPU setup for Engaging cluster (mit_normal_gpu default quota).
 #
-# Sizing rationale (targeting ~65% GPU utilization):
-#   matrix_size=16384    → measured ~47ms/matmul on L40S
-#   num_requests=20      → ~0.94s/job  (20 × 47ms)
-#   arrival_rate_hz=1.4  → 1.4 jobs/sec across 2 GPUs
-#   mean util ≈ (1.4/2) × 0.94 = 0.658  →  ~66% per GPU
+# Arrival design:
+#   burst_arrivals: jobs land in groups of 4 every 2.5s.  In real inference
+#   serving, requests are often batched by a gateway before dispatch — this
+#   models that pattern.  More importantly, it creates a queue of 2 jobs per
+#   GPU per burst, so request-count variance (see below) has room to cause
+#   imbalance that stealing can act on.  With one-at-a-time Poisson arrivals,
+#   JSQ sees the true queue depth before every decision and stays close to
+#   optimal; variance rarely accumulates enough for stealing to help.
 #
-# poisson_arrivals: true gives exponentially distributed inter-arrival gaps
-# (realistic bursty inference traffic). Bursts create short-lived queue
-# imbalances for the work-stealing comparison to act on.
+# Workload variance:
+#   num_requests_min/max: each job draws its request count uniformly from
+#   [10, 30] at arrival time (~0.47–1.41s execution, mean 0.94s).  Real
+#   inference requests vary in complexity; this models that.  The variance
+#   is the reason JSQ-no-steal can be suboptimal: it assigns jobs by queue
+#   length, not by expected duration, so a GPU can end up with two long jobs
+#   while its peer finishes two short ones and idles.
 #
-# ARCHITECTURE NOTE: Both this config and ws_ptq_100.yaml now use the same
-# WorkStealingRunner (per-GPU queues, greedy pre-assignment) and the same
-# JSQ placement algorithm (WorkStealingScheduler). The ONLY difference is
-# steal_threshold: this config sets it to 99999 so stealing never fires.
-# This ensures the comparison is: "JSQ placement alone" vs "JSQ + stealing".
-# See docs/architecture_decision.md for rationale.
+# Utilization: mean 20 req × 47ms = 0.94s/job; 4 jobs per 2.5s burst across
+# 2 GPUs → (2 jobs × 0.94s) / 2.5s ≈ 75% per GPU.
+#
+# ARCHITECTURE: steal_threshold=99999 disables stealing — JSQ placement only.
 gpus:
   ids: [0, 1]
   worker_gpus: [0, 1]
@@ -38,10 +43,11 @@ monitor:
     k_cool: 0.05
     k_neighbor: 0.1
 
-arrival_rate_hz: 1.4
-poisson_arrivals: true
+burst_arrivals: true
+burst_size: 4
+burst_interval_s: 2.5
 
 workload_mix:
-  - {type: ptq, count: 100, mem_required_mb: 4096, num_requests: 20, matrix_size: 16384}
+  - {type: ptq, count: 100, mem_required_mb: 4096, num_requests_min: 10, num_requests_max: 30, matrix_size: 16384}
 
 output_dir: ./runs

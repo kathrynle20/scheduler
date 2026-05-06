@@ -37,28 +37,53 @@ def load_config(path: Path) -> dict:
 def build_job_list(config: dict) -> list[Job]:
     """Expand `workload_mix` into concrete Job instances with arrival times.
 
-    Jobs of all types are randomly interspersed.  The overall arrival rate is
-    governed by ``arrival_rate_hz`` (default 2 jobs/sec).
+    Jobs of all types are randomly interspersed. Arrival times are set by one
+    of three modes, controlled by config flags (checked in priority order):
+
+      burst_arrivals: true  → synchronized bursts: every ``burst_size`` jobs
+                               share the same arrival timestamp, separated by
+                               ``burst_interval_s`` seconds. Creates deep per-
+                               GPU queues that make work-stealing opportunities
+                               long-lived and easy to measure. Best used with
+                               a bimodal workload_mix (short + long jobs) so
+                               that JSQ cannot predict which GPU will get the
+                               heavy jobs; stealing then corrects the imbalance.
+
+      poisson_arrivals: true → exponentially distributed inter-arrival gaps
+                               (memoryless bursty traffic). Realistic for
+                               inference serving; creates moderate imbalance.
+
+      (neither)             → evenly spaced by 1 / arrival_rate_hz.
+                               Deterministic; minimises imbalance. Good for
+                               smoke tests; suppresses stealing.
     """
     arrival_rate_hz = float(config.get("arrival_rate_hz", 2.0))
     t0 = time.monotonic() + 0.5  # small lead-in so the collector has a sample
 
     # --- build un-timed jobs from each spec ---
+    # Use per-type counters so multiple specs of the same type (e.g. two PTQ
+    # entries with different num_requests) get unique, non-overlapping IDs.
     jobs: list[Job] = []
+    type_counters: dict[str, int] = {}
     for spec in config["workload_mix"]:
         kind = spec["type"]
         count = int(spec["count"])
         mem = int(spec.get("mem_required_mb", 0))
+        base = type_counters.get(kind, 0)
+        type_counters[kind] = base + count
+
         if kind == "ptq":
+            num_req_min = int(spec.get("num_requests_min", spec.get("num_requests", 50)))
+            num_req_max = int(spec.get("num_requests_max", spec.get("num_requests", 50)))
             for i in range(count):
                 jobs.append(
                     Job(
-                        id=f"ptq-{i}",
+                        id=f"ptq-{base + i}",
                         workload_type="ptq",
                         mem_required_mb=mem,
                         arrival_time=0.0,  # assigned below
                         payload={
-                            "num_requests": int(spec.get("num_requests", 50)),
+                            "num_requests": random.randint(num_req_min, num_req_max),
                             "matrix_size": int(spec.get("matrix_size", 2048)),
                         },
                     )
@@ -70,7 +95,7 @@ def build_job_list(config: dict) -> list[Job]:
             for i in range(count):
                 jobs.append(
                     Job(
-                        id=f"train-{i}",
+                        id=f"train-{base + i}",
                         workload_type="training",
                         mem_required_mb=mem,
                         arrival_time=0.0,  # assigned below
@@ -85,19 +110,24 @@ def build_job_list(config: dict) -> list[Job]:
             raise ValueError(f"unknown workload type in config: {kind}")
 
     # --- shuffle and assign arrival times ---
-    # poisson_arrivals: true  → exponentially distributed inter-arrival gaps
-    #                           (realistic bursty traffic; required for work stealing
-    #                           to see queue imbalance)
-    # poisson_arrivals: false → evenly spaced (deterministic, good for smoke tests)
     random.shuffle(jobs)
+    use_burst = bool(config.get("burst_arrivals", False))
     use_poisson = bool(config.get("poisson_arrivals", False))
-    t = t0
-    for idx, job in enumerate(jobs):
-        if use_poisson:
+
+    if use_burst:
+        burst_size = int(config.get("burst_size", 4))
+        burst_interval_s = float(config.get("burst_interval_s", 2.0))
+        for idx, job in enumerate(jobs):
+            burst_num = idx // burst_size
+            job.arrival_time = t0 + burst_num * burst_interval_s
+    elif use_poisson:
+        t = t0
+        for job in jobs:
             t += random.expovariate(arrival_rate_hz)
-        else:
-            t = t0 + idx * (1.0 / arrival_rate_hz if arrival_rate_hz > 0 else 0.0)
-        job.arrival_time = t
+            job.arrival_time = t
+    else:
+        for idx, job in enumerate(jobs):
+            job.arrival_time = t0 + idx * (1.0 / arrival_rate_hz if arrival_rate_hz > 0 else 0.0)
 
     return jobs
 

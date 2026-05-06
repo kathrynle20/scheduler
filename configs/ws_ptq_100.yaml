@@ -1,9 +1,10 @@
 # Experiment 1 (work stealing): 100 PTQ inference jobs only.
 # 2-GPU setup for Engaging cluster (mit_normal_gpu default quota).
 #
-# Identical workload to ptq_100.yaml -- only the scheduler differs.
-# steal_threshold=1: steal as soon as any imbalance exists. At ~70% load
-# with Poisson arrivals, bursts regularly produce 1-job imbalances.
+# Identical workload and arrival pattern to ptq_100.yaml — only stealing differs.
+# steal_threshold=1: steal as soon as a 1-job imbalance exists.  With burst
+# arrivals and variable request counts, one GPU frequently finishes its burst
+# work before its peer; stealing fills that idle time with queued long jobs.
 gpus:
   ids: [0, 1]
   worker_gpus: [0, 1]
@@ -27,10 +28,11 @@ monitor:
     k_cool: 0.05
     k_neighbor: 0.1
 
-arrival_rate_hz: 1.4
-poisson_arrivals: true
+burst_arrivals: true
+burst_size: 4
+burst_interval_s: 2.5
 
 workload_mix:
-  - {type: ptq, count: 100, mem_required_mb: 4096, num_requests: 20, matrix_size: 16384}
+  - {type: ptq, count: 100, mem_required_mb: 4096, num_requests_min: 10, num_requests_max: 30, matrix_size: 16384}
 
 output_dir: ./runs

@@ -97,24 +97,31 @@ The YAML field `arrival_rate_hz` fixes the **long-run average** job rate
 (jobs/sec over the whole experiment). The **actual** spacing between successive
 arrivals is either bursty (Poisson) or deterministic (even spacing); see below.
 
-### What “Poisson arrivals” means here
+### Arrival modes
 
-In probability, a **Poisson process** is a standard model for “events that
-happen at some average rate, but not on a metronome”: the number of arrivals in
-any fixed time window is Poisson-distributed, and the time **between** arrivals
-is **exponential** with mean `1 / λ`, where `λ` is the rate (here,
-`arrival_rate_hz`). The process is **memoryless**—after a long quiet gap or a
-tight burst, the waiting time until the *next* job still follows the same
-distribution—so you naturally get **clusters of jobs** separated by idle time,
-even though the overall mean rate matches something like **1.4 jobs/sec**.
+`build_job_list` supports three arrival modes, checked in priority order:
 
-In code, configs set `poisson_arrivals: true` (`configs/ptq_100.yaml`,
-`configs/mixed_100_50.yaml`, work-stealing variants, etc.). That makes
-`build_job_list` advance the clock after each successive job by an **independent
-exponential** draw with rate `arrival_rate_hz` (not by a fixed Δt). Turning it
-off uses **uniform spacing** (`Δt = 1 / arrival_rate_hz` between successive
-jobs), which is smoother and easier for smoke tests but **suppresses bursts**—so
-queues stay more even and steal has less imbalance to repair.
+**`burst_arrivals: true`** (Experiments 1 and 4)
+
+Jobs arrive in synchronized groups of `burst_size` at the same timestamp,
+separated by `burst_interval_s` seconds, modelling a batch-dispatch gateway.
+All jobs in a burst land before any start running, so JSQ distributes them
+by queue count alone — it has no duration information. If the jobs in a burst
+have variable request counts (via `num_requests_min`/`num_requests_max`), the
+GPU that gets the longer jobs accumulates queue depth while the other goes idle,
+creating clear stealing opportunities that Poisson arrivals suppress.
+
+**`poisson_arrivals: true`** (Experiments 2 and 3)
+
+Inter-arrival gaps are independent exponential draws with mean
+`1 / arrival_rate_hz`. Arrivals come one at a time; JSQ sees the correct queue
+depth before each decision. Post-placement imbalances are smaller and more
+transient than under burst mode, so stealing fires less often.
+
+**Neither flag** (smoke/default configs)
+
+Evenly spaced by `1 / arrival_rate_hz`. Fully deterministic; queues stay flat.
+Used for smoke tests.
 
 ---
 
@@ -122,43 +129,48 @@ queues stay more even and steal has less imbalance to repair.
 
 **Configs:** `ptq_100.yaml` (JSQ, no steal) vs. `ws_ptq_100.yaml` (JSQ + steal)
 
-Both GPUs run the same workload. Bursts from Poisson arrivals periodically
-create transient queue imbalances. Work stealing detects and corrects them.
+Jobs arrive in bursts of 4 every 2.5 seconds. Each job draws its request count
+from U[10, 30] at arrival time (mean 20 req × 47ms ≈ 0.94s, range 0.47–1.41s).
+The combination of burst arrivals and variable request counts is what makes the
+PTQ-only comparison meaningful:
+
+- **Burst arrivals** create a queue of 2 jobs per GPU per burst. JSQ distributes
+  by count alone (no duration visibility) so whichever jobs happen to be longer
+  end up determining which GPU gets stuck.
+- **Variable request counts** mean that even with the same queue length, two GPUs
+  can have very different amounts of work. When one GPU finishes its 2 short jobs
+  before the other finishes its 2 long jobs, the idle GPU has a clear target to
+  steal from.
+
+With Poisson arrivals and a fixed 20-request count, JSQ is near-optimal — it
+sees the exact queue depth before every decision and all jobs take the same time.
+Stealing rarely fires because there's nothing meaningful to correct.
 
 ### Expected no-steal baseline
 
-JSQ placement keeps the initial distribution close to balanced, so the baseline
-is already much better than round-robin. The residual imbalance comes from burst
-arrivals that arrive faster than GPUs drain their queues.
-
 | Metric | Expected (no-steal baseline) |
 |--------|------------------------------|
-| PTQ avg request time | ~47ms |
-| PTQ avg job latency | ~1.1–1.5s |
-| PTQ p50 job latency | ~0.94s (most land on a short queue) |
-| PTQ p95 job latency | ~1.8–2.8s (occasional queue depth ≥ 2) |
-| PTQ p99 job latency | ~2.5–3.5s (worst-case burst) |
-| PTQ avg queue wait | ~0.15–0.5s |
-| Cluster util mean | ~65–70% |
-| Cluster util std | Moderate — bursts cause temporary imbalance |
+| PTQ avg request time | varies per job (~47ms/req) |
+| PTQ avg job latency | ~1.2–1.6s |
+| PTQ p50 job latency | ~0.94s (median-duration jobs, short queue wait) |
+| PTQ p95 job latency | ~2.0–3.0s (long jobs stuck behind other long jobs) |
+| PTQ p99 job latency | ~2.8–3.8s |
+| PTQ avg queue wait | ~0.3–0.7s |
+| Cluster util mean | ~70–75% |
+| Cluster util std | Moderate — long-job clusters cause imbalance each burst |
 
 ### Expected work-stealing behavior
 
 | Metric | Expected (work stealing) | Δ vs. baseline |
 |--------|--------------------------|----------------|
-| PTQ avg request time | ~47ms | = same |
-| PTQ avg job latency | ~1.0–1.3s | **Modestly lower** |
+| PTQ avg request time | same | = same |
+| PTQ avg job latency | ~1.0–1.3s | **15–25% lower** |
 | PTQ p50 job latency | ~0.94s | ≈ same |
-| PTQ p95 job latency | ~1.4–2.2s | **10–25% lower** |
-| PTQ p99 job latency | ~1.8–2.8s | **15–30% lower** |
-| PTQ avg queue wait | ~0.05–0.25s | **Lower** |
+| PTQ p95 job latency | ~1.5–2.2s | **20–35% lower** |
+| PTQ p99 job latency | ~2.0–2.8s | **25–35% lower** |
+| PTQ avg queue wait | ~0.1–0.3s | **Lower** |
 | Cluster util std | Lower | **Better balance** |
-| Steal count | ~10–25 | — |
-
-**The improvement here is smaller than originally predicted** (when comparing
-against round-robin wait-for-free). JSQ already does much of the work. Stealing
-captures the residual gain: burst arrivals that JSQ could not have predicted
-at placement time.
+| Steal count | ~20–40 | — |
 
 ---
 
@@ -226,12 +238,14 @@ can correct this after the fact.
 
 ---
 
+---
+
 ## Summary
 
 | Experiment | Expected improvement | Why |
 |------------|----------------------|-----|
-| PTQ only | Modest (10–25% tail latency) | JSQ already close to optimal; stealing corrects residual burst imbalance |
-| Training only | None | No post-placement imbalance to correct |
+| PTQ only | **15–35% tail latency** | Burst arrivals + variable request counts give JSQ no duration info; stealing rebalances after fast GPU drains its burst queue |
+| Training only | None | Uniform long jobs; no post-placement imbalance to correct |
 | Mixed | Largest (significant tail latency reduction) | Training job duration unknown at dispatch — JSQ cannot prevent queue stacking; stealing is the only corrective |
 
 ---
